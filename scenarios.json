@@ -141,7 +141,7 @@
       "restart_order_processor_with_memory_limit",
       "restart_service",
       "scale_horizontally",
-      "increase_memory"
+      "flush_message_queue"
     ]
   },
   "easy_003": {
