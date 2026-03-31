@@ -1,0 +1,66 @@
+{
+  "model": "meta-llama/Llama-3.3-70B-Instruct",
+  "scores": {
+    "easy": 0.0,
+    "medium": 0.838,
+    "hard": 0.83
+  },
+  "all_passed": false,
+  "total_elapsed_seconds": 38.1,
+  "results": {
+    "easy": {
+      "difficulty": "easy",
+      "score": 0.0,
+      "steps": 5,
+      "elapsed_seconds": 13.2,
+      "passed": false,
+      "info": {
+        "action": {
+          "action_type": "resolve",
+          "target": null,
+          "resolution_action": "increase_memory"
+        },
+        "result": "WRONG FIX \u2014 incorrect root cause targeted",
+        "blast_radius": 1,
+        "final_score": 0.0,
+        "cumulative_reward": -6.0
+      }
+    },
+    "medium": {
+      "difficulty": "medium",
+      "score": 0.838,
+      "steps": 5,
+      "elapsed_seconds": 11.6,
+      "passed": true,
+      "info": {
+        "action": {
+          "action_type": "resolve",
+          "target": null,
+          "resolution_action": "renew_billing_api_certificate"
+        },
+        "result": "CORRECT \u2014 incident resolved successfully",
+        "efficiency_bonus": 2.04,
+        "final_score": 0.838,
+        "cumulative_reward": 11.04
+      }
+    },
+    "hard": {
+      "difficulty": "hard",
+      "score": 0.83,
+      "steps": 6,
+      "elapsed_seconds": 13.3,
+      "passed": true,
+      "info": {
+        "action": {
+          "action_type": "resolve",
+          "target": null,
+          "resolution_action": "disable_feature_flag_fraud_model_v3"
+        },
+        "result": "CORRECT \u2014 incident resolved successfully",
+        "efficiency_bonus": 2.1,
+        "final_score": 0.83,
+        "cumulative_reward": 10.9
+      }
+    }
+  }
+}

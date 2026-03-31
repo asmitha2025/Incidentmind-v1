@@ -1,7 +1,6 @@
 __pycache__/
 *.pyc
 .env
-baseline_scores.json
 *.egg-info/
 dist/
 build/
