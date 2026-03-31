@@ -1,0 +1,218 @@
+name: IncidentMind
+version: "1.1.0"
+description: >
+  Ambiguity-Aware Production Incident Response RL Environment.
+  Trains AI agents to diagnose and resolve production software incidents
+  under real-world conditions — noisy logs, red herrings, cascading failures,
+  and time pressure. Built on the confidence-gating architecture of OPTI-FAB.
+
+authors:
+  - Hariharan M
+  - Asmitha M
+
+tags:
+  - incident-response
+  - ambiguity-resolution
+  - reinforcement-learning
+  - production-systems
+  - openenv
+
+tasks:
+  # ─── Easy (3 scenarios) ─────────────────────────────────────────────────────
+  - id: easy_001
+    difficulty: easy
+    description: >
+      Single root cause: Database connection pool exhausted.
+      Agent must investigate postgres before acting.
+      Redis cache alert is a red herring.
+    max_steps: 8
+    clarification_budget: 1
+    success_threshold: 0.70
+    reward_range: [-10.0, 13.5]
+
+  - id: easy_002
+    difficulty: easy
+    description: >
+      Worker process OOM kill from memory leak.
+      Order-processor killed by kernel due to unclosed cursors.
+      Message queue depth growing is a symptom, not a cause.
+    max_steps: 8
+    clarification_budget: 1
+    success_threshold: 0.70
+    reward_range: [-10.0, 13.5]
+
+  - id: easy_003
+    difficulty: easy
+    description: >
+      Disk full causing database write failures.
+      WAL archiving failed silently, filling postgres disk.
+      Log aggregator shipping failures are a separate issue.
+    max_steps: 8
+    clarification_budget: 1
+    success_threshold: 0.70
+    reward_range: [-10.0, 13.5]
+
+  # ─── Medium (3 scenarios) ───────────────────────────────────────────────────
+  - id: medium_001
+    difficulty: medium
+    description: >
+      Cascading failure with one red herring.
+      ML inference GPU saturation causes downstream timeouts.
+      Product catalog cache misses are a distraction — not root cause.
+    max_steps: 12
+    clarification_budget: 2
+    success_threshold: 0.60
+    reward_range: [-15.0, 14.0]
+
+  - id: medium_002
+    difficulty: medium
+    description: >
+      DNS misconfiguration causing intermittent resolution failures.
+      New upstream forwarder has 40% packet loss.
+      Health checker flapping is a symptom of DNS, not a cause.
+    max_steps: 12
+    clarification_budget: 2
+    success_threshold: 0.60
+    reward_range: [-15.0, 14.0]
+
+  - id: medium_003
+    difficulty: medium
+    description: >
+      TLS certificate expiry on internal billing API.
+      Auto-renewal failed 7 days ago. Payment-processor SSL errors
+      are downstream. Cert-monitor is a reporter, not a cause.
+    max_steps: 12
+    clarification_budget: 2
+    success_threshold: 0.60
+    reward_range: [-15.0, 14.0]
+
+  # ─── Hard (3 scenarios) ─────────────────────────────────────────────────────
+  - id: hard_001
+    difficulty: hard
+    description: >
+      Multi-alert chaos with 3 red herrings.
+      Feature flag activates fraud model requiring user_embedding_v3 —
+      not yet available in feature store. Payment gateway, session store,
+      and auth service alerts are all distractions.
+    max_steps: 15
+    clarification_budget: 3
+    success_threshold: 0.50
+    reward_range: [-20.0, 13.6]
+
+  - id: hard_002
+    difficulty: hard
+    description: >
+      Certificate rotation breaking mutual TLS across service mesh.
+      New intermediate CA distributed to only 8/12 services.
+      API gateway, database-proxy, and monitoring-agent are victims
+      of incomplete propagation, not root causes.
+    max_steps: 15
+    clarification_budget: 3
+    success_threshold: 0.50
+    reward_range: [-20.0, 13.6]
+
+  - id: hard_003
+    difficulty: hard
+    description: >
+      Silent data corruption from schema migration race condition.
+      Migration v48 shifted column positions, dropped constraints,
+      and skipped verification. Inventory-service, reconciliation-job,
+      and pricing-engine are all victims of the bad migration.
+    max_steps: 15
+    clarification_budget: 3
+    success_threshold: 0.50
+    reward_range: [-20.0, 13.6]
+
+observation_space:
+  scenario_id: string
+  difficulty: string  # easy | medium | hard
+  description: string
+  alerts:
+    type: array
+    items:
+      service: string
+      severity: string  # critical | warning | info
+      message: string
+  logs_available:
+    type: array
+    items: string
+  logs_seen:
+    type: object
+    description: Map of service name to list of log line strings
+  actions_taken:
+    type: array
+    items:
+      step: integer
+      action_type: string
+      target: string
+      resolution_action: string
+      reward: float
+  clarifications_remaining: integer
+  steps_remaining: integer
+  confidence_signal:
+    type: float
+    range: [0.0, 1.0]
+    description: >
+      OPTI-FAB-derived confidence gate. Rises as agent investigates correct
+      services. Falls when wrong actions increase blast radius.
+  blast_radius: integer
+  resolved: boolean
+
+action_space:
+  investigate:
+    description: Fetch log lines for a specific service
+    parameters:
+      target: string  # service name from logs_available
+  ask_clarification:
+    description: Ask a pre-defined clarification question (costs 1 budget)
+    parameters:
+      target: string  # question_key from clarification_map
+  resolve:
+    description: Apply a resolution action — ends episode
+    parameters:
+      resolution_action: string  # the fix to apply
+  rollback:
+    description: Revert a service to previous state
+    parameters:
+      target: string
+  escalate:
+    description: Hand off to human on-call — ends episode with penalty
+
+reward_signals:
+  correct_resolution: +10.0
+  efficiency_bonus: "+0.5 to +3.5 (scales with steps remaining)"
+  step_penalty: -0.2
+  wrong_resolution: -3.0
+  blast_radius_penalty: -2.0 per affected service
+  redundant_investigation: -0.3
+  clarification_exhausted: -2.0
+  escalation: -2.0
+  timeout: -5.0
+
+baseline:
+  model: meta-llama/Llama-3.3-70B-Instruct
+  script: inference.py
+  expected_scores:
+    easy: "~0.80"
+    medium: "~0.65"
+    hard: "~0.30"
+  trained_agent_target:
+    easy: "0.90+"
+    medium: "0.80+"
+    hard: "0.60+"
+  note: >
+    Hard tasks are designed so untrained frontier models score 0.10-0.35 by acting
+    on the most visible alert. Trained agents learn to ignore red herrings and
+    trace the dependency chain to the root cause. With 3 scenarios per difficulty,
+    agents must generalize across different incident patterns.
+
+infrastructure:
+  runtime: Docker
+  port: 7860
+  base_image: python:3.11-slim
+  framework: FastAPI + Uvicorn
+  max_inference_time_minutes: 20
+  environment_variables:
+    - API_BASE_URL
+    - MODEL_NAME
+    - HF_TOKEN

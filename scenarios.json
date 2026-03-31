@@ -1,0 +1,563 @@
+{
+  "easy_001": {
+    "scenario_id": "easy_001",
+    "difficulty": "easy",
+    "title": "Database Connection Pool Exhausted",
+    "description": "ALERT: Checkout API returning 500 errors. Started 8 minutes ago. Approximately 340 failed transactions in the last 5 minutes. On-call engineer paged.",
+    "alerts": [
+      {"service": "checkout-api", "severity": "critical", "message": "HTTP 500 error rate 94% — upstream dependency failure"},
+      {"service": "postgres-primary", "severity": "critical", "message": "Connection pool exhausted — max_connections=100 reached"},
+      {"service": "redis-cache", "severity": "info", "message": "Cache hit rate dropped to 42% — elevated miss rate"}
+    ],
+    "services_available": ["checkout-api", "postgres-primary", "redis-cache", "payment-gateway"],
+    "logs": {
+      "checkout-api": [
+        "[08:42:11] ERROR: Failed to acquire DB connection after 5000ms timeout",
+        "[08:42:11] ERROR: SQLAlchemyError: QueuePool limit overflow — pool size=100, overflow=10",
+        "[08:42:12] ERROR: 500 Internal Server Error returned to client",
+        "[08:42:13] WARN: Retry attempt 1/3 — still no available connection"
+      ],
+      "postgres-primary": [
+        "[08:41:58] FATAL: remaining connection slots are reserved for non-replication superuser connections",
+        "[08:41:59] ERROR: max_connections=100 reached — new connections refused",
+        "[08:42:00] LOG: currently 100 active connections, 0 idle",
+        "[08:42:01] LOG: longest running query: 847 seconds — SELECT * FROM orders WHERE status='pending'"
+      ],
+      "redis-cache": [
+        "[08:42:05] INFO: Cache miss for key checkout_session_8821",
+        "[08:42:06] INFO: Cache miss for key checkout_session_8822",
+        "[08:42:07] INFO: keyspace_hits=421 keyspace_misses=381"
+      ],
+      "payment-gateway": [
+        "[08:42:10] INFO: Gateway healthy — 0 failed transactions in last 60s",
+        "[08:42:10] INFO: Latency p99=210ms — within SLA"
+      ]
+    },
+    "clarification_map": {
+      "when_did_this_start": "Connection pool exhaustion started at 08:41:58 — coincides with a long-running query that has been running for 847 seconds.",
+      "is_redis_the_cause": "No. Redis cache miss rate is elevated as a downstream symptom of the checkout API returning errors, not a root cause."
+    },
+    "root_cause_service": "postgres-primary",
+    "correct_action": "increase_connections",
+    "red_herrings": ["redis-cache"],
+    "ambiguity_level": 0,
+    "max_steps": 8,
+    "clarification_budget": 1,
+    "success_threshold": 0.70
+  },
+
+  "easy_002": {
+    "scenario_id": "easy_002",
+    "difficulty": "easy",
+    "title": "Worker Process OOM Kill — Order Processing Stalled",
+    "description": "ALERT: Order processing pipeline stalled. 1,247 orders stuck in 'pending' state over the last 15 minutes. Customer complaints escalating. Message queue depth growing rapidly.",
+    "alerts": [
+      {"service": "order-processor", "severity": "critical", "message": "Process terminated — OOM killed by kernel at 11:03:22. Restart attempted, killed again at 11:04:18."},
+      {"service": "message-queue", "severity": "critical", "message": "Queue depth 12,847 and growing — consumer group 'order-workers' has 0 active consumers"},
+      {"service": "notification-service", "severity": "info", "message": "Delivery rate dropped 94% — no new order events received"}
+    ],
+    "services_available": ["order-processor", "message-queue", "notification-service", "cache-layer"],
+    "logs": {
+      "order-processor": [
+        "[11:01:12] WARN: Heap usage 78% — GC pressure increasing",
+        "[11:02:44] WARN: Heap usage 91% — approaching memory limit (2048MB)",
+        "[11:03:01] ERROR: java.lang.OutOfMemoryError: Java heap space — failed to allocate 128MB for batch cursor",
+        "[11:03:22] FATAL: Process killed by OOM killer — RSS=2147MB exceeded cgroup limit=2048MB",
+        "[11:03:25] INFO: Supervisor restarting order-processor (attempt 1/3)",
+        "[11:04:18] FATAL: Process killed again — memory leak in database cursor: 847 unclosed cursors from batch_import_v2 path"
+      ],
+      "message-queue": [
+        "[11:03:30] WARN: Consumer group 'order-workers' has 0 active members",
+        "[11:03:31] WARN: Queue depth growing at ~200 messages/sec",
+        "[11:03:32] INFO: Queue itself is healthy — broker CPU 12%, disk 34%. Issue is consumer-side.",
+        "[11:03:33] INFO: Messages are being produced normally by upstream services"
+      ],
+      "notification-service": [
+        "[11:03:40] INFO: No new order.completed events in last 15 minutes",
+        "[11:03:41] INFO: Service is healthy — simply no events to process",
+        "[11:03:42] INFO: Last successful notification sent at 11:01:08 for order_id=ORD-994421"
+      ],
+      "cache-layer": [
+        "[11:03:45] INFO: Cache hit rate 96% — nominal",
+        "[11:03:46] INFO: Memory usage 340MB / 1024MB — healthy",
+        "[11:03:47] INFO: No eviction pressure. Service fully operational."
+      ]
+    },
+    "clarification_map": {
+      "when_did_this_start": "Order-processor first showed memory pressure at 11:01:12, OOM killed at 11:03:22. The batch_import_v2 code path was deployed yesterday and contains a cursor leak.",
+      "is_message_queue_the_cause": "No. Message queue is healthy — it's accumulating messages because the consumer (order-processor) is dead. Queue depth is a symptom, not a cause."
+    },
+    "root_cause_service": "order-processor",
+    "correct_action": "restart_order_processor_with_memory_fix",
+    "red_herrings": ["message-queue"],
+    "ambiguity_level": 0,
+    "max_steps": 8,
+    "clarification_budget": 1,
+    "success_threshold": 0.70
+  },
+
+  "easy_003": {
+    "scenario_id": "easy_003",
+    "difficulty": "easy",
+    "title": "Disk Full — Write Failures Cascading to API",
+    "description": "ALERT: User registration and profile update APIs returning 500 errors. Started 12 minutes ago. Error rate 67%. Some read operations still succeeding. Monitoring dashboard shows storage alerts.",
+    "alerts": [
+      {"service": "user-service", "severity": "critical", "message": "HTTP 500 on POST/PUT endpoints — write operations failing. GET endpoints partially functional."},
+      {"service": "postgres-replica", "severity": "critical", "message": "PANIC: could not write to WAL — no space left on device"},
+      {"service": "log-aggregator", "severity": "warning", "message": "Log ingestion rate dropped 40% — some log shipments failing"}
+    ],
+    "services_available": ["user-service", "postgres-replica", "log-aggregator", "search-indexer"],
+    "logs": {
+      "user-service": [
+        "[14:18:22] ERROR: INSERT INTO users failed — DatabaseError: could not extend file",
+        "[14:18:23] ERROR: UPDATE user_profiles SET — DatabaseError: could not write to WAL segment",
+        "[14:18:24] INFO: SELECT queries still working — read replicas functional",
+        "[14:18:25] WARN: 342 failed write operations in last 10 minutes"
+      ],
+      "postgres-replica": [
+        "[14:16:01] ERROR: could not write to file pg_wal/000000010000000A — No space left on device",
+        "[14:16:02] FATAL: WAL writer process terminated — disk full on /data/postgres",
+        "[14:16:03] LOG: Disk usage: /data/postgres 100% used (478GB/478GB)",
+        "[14:16:04] LOG: Largest space consumer: pg_wal/ at 312GB — WAL archiving has been failing silently since 14:06:00"
+      ],
+      "log-aggregator": [
+        "[14:18:30] WARN: Failed to ship log batch to storage — timeout after 30s",
+        "[14:18:31] INFO: Local buffer at 72% capacity — this is a self-contained issue",
+        "[14:18:32] INFO: Log aggregator storage is on a SEPARATE volume — not related to postgres disk issue"
+      ],
+      "search-indexer": [
+        "[14:18:35] INFO: Search index healthy — last sync 2 minutes ago",
+        "[14:18:36] INFO: No write failures detected in search cluster",
+        "[14:18:37] INFO: Operating on independent storage volume"
+      ]
+    },
+    "clarification_map": {
+      "when_did_this_start": "WAL archiving started failing at 14:06:00, but disk didn't fill completely until 14:16:01. Write operations started failing immediately after disk reached 100%.",
+      "is_log_aggregator_the_cause": "No. Log aggregator runs on a separate storage volume. Its shipping failures are due to network timeouts, a separate minor issue. It is not related to the database disk problem."
+    },
+    "root_cause_service": "postgres-replica",
+    "correct_action": "clean_wal_and_fix_archiving",
+    "red_herrings": ["log-aggregator"],
+    "ambiguity_level": 0,
+    "max_steps": 8,
+    "clarification_budget": 1,
+    "success_threshold": 0.70
+  },
+
+  "medium_001": {
+    "scenario_id": "medium_001",
+    "difficulty": "medium",
+    "title": "Cascading Timeout — ML Inference Upstream",
+    "description": "ALERT: User-facing API latency spiking. P99 response time 14.2 seconds — SLA is 2 seconds. Recommendation engine appears degraded. Product catalog cache miss rate elevated. Started 22 minutes ago after a scheduled model reload.",
+    "alerts": [
+      {"service": "user-api", "severity": "critical", "message": "P99 latency 14.2s — SLA breach. Timeout errors increasing."},
+      {"service": "recommendation-engine", "severity": "critical", "message": "Response time 12.8s avg — dependency timeout cascade"},
+      {"service": "product-catalog", "severity": "warning", "message": "Cache miss rate 78% — elevated but not critical"},
+      {"service": "ml-inference", "severity": "info", "message": "Model reload completed 22 min ago — marked healthy"}
+    ],
+    "services_available": ["user-api", "recommendation-engine", "product-catalog", "ml-inference", "feature-store"],
+    "logs": {
+      "user-api": [
+        "[09:14:22] ERROR: Upstream timeout from recommendation-engine after 12800ms",
+        "[09:14:22] ERROR: Request failed — returning 504 to client",
+        "[09:14:23] WARN: Circuit breaker OPEN for recommendation-engine after 10 consecutive timeouts",
+        "[09:14:24] INFO: Fallback to static recommendations engaged"
+      ],
+      "recommendation-engine": [
+        "[09:14:10] ERROR: ml-inference call timed out after 12000ms — retrying",
+        "[09:14:11] ERROR: ml-inference retry 1/3 timed out",
+        "[09:14:12] ERROR: ml-inference retry 2/3 timed out — giving up",
+        "[09:14:12] ERROR: Returning error upstream to user-api"
+      ],
+      "product-catalog": [
+        "[09:14:15] WARN: Redis cache MISS for product_id=44821",
+        "[09:14:15] INFO: Falling back to database query — latency +340ms",
+        "[09:14:16] INFO: Cache population completed for product_id=44821",
+        "[09:14:16] INFO: This is a known side effect of high API error rates causing cache invalidation"
+      ],
+      "ml-inference": [
+        "[08:52:01] INFO: Model reload initiated — loading collaborative_filter_v4.pkl",
+        "[08:52:44] INFO: Model loaded — marked healthy",
+        "[09:14:05] ERROR: CUDA out of memory — model requires 18.2GB, available 11.4GB",
+        "[09:14:05] ERROR: Inference request rejected — GPU saturated",
+        "[09:14:06] ERROR: Queue depth 847 — all workers blocked on GPU allocation"
+      ],
+      "feature-store": [
+        "[09:14:20] INFO: Feature retrieval latency p99=42ms — healthy",
+        "[09:14:20] INFO: 0 failed feature lookups in last 60s"
+      ]
+    },
+    "clarification_map": {
+      "when_did_this_start": "Degradation started approximately 22 minutes ago, coinciding with the ml-inference model reload at 08:52:01.",
+      "is_product_catalog_the_cause": "No. Product catalog cache misses are a downstream symptom — when the recommendation engine errors, session-level cache invalidation occurs. Product catalog is not the root cause.",
+      "what_changed_recently": "The only change in the past 30 minutes was a scheduled reload of collaborative_filter_v4.pkl in ml-inference. The new model is larger than the previous version and exceeds GPU memory."
+    },
+    "root_cause_service": "ml-inference",
+    "correct_action": "rollback_model_reload",
+    "red_herrings": ["product-catalog"],
+    "ambiguity_level": 1,
+    "max_steps": 12,
+    "clarification_budget": 2,
+    "success_threshold": 0.60
+  },
+
+  "medium_002": {
+    "scenario_id": "medium_002",
+    "difficulty": "medium",
+    "title": "DNS Misconfiguration — Intermittent Service Resolution Failures",
+    "description": "ALERT: Intermittent 502/503 errors across multiple services. Error rate oscillating between 15-60%. Started 18 minutes ago after infrastructure maintenance. Some requests succeed, others fail unpredictably. No single service appears fully down.",
+    "alerts": [
+      {"service": "api-gateway", "severity": "critical", "message": "502 Bad Gateway errors at 34% — upstream resolution intermittent"},
+      {"service": "service-mesh", "severity": "critical", "message": "Service discovery failures — 28% of lookups returning NXDOMAIN"},
+      {"service": "health-checker", "severity": "warning", "message": "Services flapping — 6 services alternating healthy/unhealthy every 30-90 seconds"},
+      {"service": "dns-resolver", "severity": "info", "message": "Configuration update applied 18 min ago — resolver restarted successfully"}
+    ],
+    "services_available": ["api-gateway", "service-mesh", "health-checker", "dns-resolver", "load-balancer"],
+    "logs": {
+      "api-gateway": [
+        "[15:22:11] ERROR: 502 Bad Gateway — upstream 'order-service.internal' resolved to 0.0.0.0",
+        "[15:22:12] INFO: Next request to order-service.internal succeeded — resolved to 10.0.4.18",
+        "[15:22:13] ERROR: 502 Bad Gateway — upstream 'user-service.internal' NXDOMAIN",
+        "[15:22:14] INFO: user-service.internal resolved correctly on retry — cached entry expired"
+      ],
+      "service-mesh": [
+        "[15:22:05] ERROR: DNS lookup for payment-service.internal returned NXDOMAIN",
+        "[15:22:06] WARN: Retried after 2s — resolved successfully to 10.0.3.22",
+        "[15:22:07] ERROR: Envoy proxy upstream connection failed — DNS resolution timeout after 5s",
+        "[15:22:08] INFO: Pattern: failures correlate with TTL expiry — every cached entry that expires has a 40% chance of NXDOMAIN on re-resolve"
+      ],
+      "health-checker": [
+        "[15:22:15] WARN: order-service marked UNHEALTHY (failed DNS-based health check)",
+        "[15:22:45] INFO: order-service marked HEALTHY (DNS resolved on retry)",
+        "[15:23:15] WARN: order-service marked UNHEALTHY again — this is flapping, not a real service issue",
+        "[15:23:16] INFO: All backend services respond normally when reached directly by IP. Issue is resolution-layer only."
+      ],
+      "dns-resolver": [
+        "[15:04:01] INFO: Configuration update applied — new upstream forwarders set",
+        "[15:04:02] WARN: Primary upstream forwarder changed from 10.0.0.2 to 10.0.0.53",
+        "[15:04:03] ERROR: Upstream 10.0.0.53 intermittently unreachable — 40% packet loss",
+        "[15:04:04] INFO: Fallback forwarder 10.0.0.2 still configured but deprioritized — used only after 5s timeout",
+        "[15:04:05] WARN: Effective DNS resolution latency now 0-5200ms depending on primary forwarder availability"
+      ],
+      "load-balancer": [
+        "[15:22:20] INFO: Load balancer healthy — all listener ports operational",
+        "[15:22:21] INFO: Backend pool membership managed by health-checker — currently 4/6 backends marked healthy",
+        "[15:22:22] INFO: Load balancer itself has no DNS dependency — routes by IP from health-checker registry"
+      ]
+    },
+    "clarification_map": {
+      "what_changed_recently": "Infrastructure team applied a DNS resolver configuration update at 15:04:01, changing the primary upstream forwarder to 10.0.0.53. This new forwarder has 40% packet loss.",
+      "is_health_checker_the_cause": "No. Health checker is accurately reporting what it sees — services appear to flap because DNS resolution is intermittent. The health checker is a victim, not the cause. All services are actually healthy when accessed by IP."
+    },
+    "root_cause_service": "dns-resolver",
+    "correct_action": "rollback_dns_config",
+    "red_herrings": ["health-checker"],
+    "ambiguity_level": 1,
+    "max_steps": 12,
+    "clarification_budget": 2,
+    "success_threshold": 0.60
+  },
+
+  "medium_003": {
+    "scenario_id": "medium_003",
+    "difficulty": "medium",
+    "title": "TLS Certificate Expiry — Downstream API Handshake Failures",
+    "description": "ALERT: Payment processing failures spiking. 73% of transactions failing with connection errors. Started 25 minutes ago. Internal API calls between services returning SSL/TLS errors. Certificate monitoring shows warnings.",
+    "alerts": [
+      {"service": "payment-processor", "severity": "critical", "message": "73% transaction failure rate — SSL handshake errors to downstream billing-api"},
+      {"service": "billing-api", "severity": "critical", "message": "Inbound connections dropping — clients reporting certificate validation failures"},
+      {"service": "cert-monitor", "severity": "warning", "message": "Certificate for *.billing.internal expired 25 minutes ago"},
+      {"service": "api-gateway", "severity": "info", "message": "External-facing endpoints nominal — only internal service-to-service calls affected"}
+    ],
+    "services_available": ["payment-processor", "billing-api", "cert-monitor", "api-gateway", "vault-secrets"],
+    "logs": {
+      "payment-processor": [
+        "[16:35:11] ERROR: SSL: CERTIFICATE_VERIFY_FAILED — billing-api.billing.internal certificate expired",
+        "[16:35:12] ERROR: Transaction txn_7721 failed — cannot establish secure connection to billing-api",
+        "[16:35:13] WARN: 847 failed transactions in last 25 minutes — all SSL handshake errors",
+        "[16:35:14] INFO: Payment-processor itself is healthy — issue is connecting TO billing-api"
+      ],
+      "billing-api": [
+        "[16:10:01] WARN: TLS certificate for *.billing.internal expires in 0 days",
+        "[16:10:02] ERROR: Certificate expired at 16:10:00 UTC — NotAfter date reached",
+        "[16:10:03] INFO: Billing-api service logic is healthy — HTTP handler running normally",
+        "[16:10:04] ERROR: All mutual TLS clients rejecting connection — expired server certificate"
+      ],
+      "cert-monitor": [
+        "[16:10:05] ALERT: Certificate *.billing.internal EXPIRED — was due for renewal 7 days ago",
+        "[16:10:06] WARN: Auto-renewal job failed on 2026-03-23 — ACME challenge DNS record not propagated",
+        "[16:10:07] INFO: Cert-monitor is reporting only. It does not manage certificate lifecycle.",
+        "[16:10:08] INFO: Certificate renewal must be triggered manually or via vault-secrets rotation"
+      ],
+      "api-gateway": [
+        "[16:35:20] INFO: All external HTTPS endpoints healthy — external certificates valid until 2027-01-15",
+        "[16:35:21] INFO: API gateway terminates external TLS and re-encrypts to internal services",
+        "[16:35:22] INFO: Gateway-to-billing-api connection also failing (same expired cert), but gateway fallback to cached responses active for read-only endpoints"
+      ],
+      "vault-secrets": [
+        "[16:35:25] INFO: Vault healthy — all secret engines operational",
+        "[16:35:26] INFO: PKI secret engine has pending certificate request for *.billing.internal",
+        "[16:35:27] INFO: Manual rotation available: vault write pki/issue/billing common_name=*.billing.internal",
+        "[16:35:28] INFO: Previous certificate was issued by vault PKI — renewal path is straightforward"
+      ]
+    },
+    "clarification_map": {
+      "when_did_this_start": "The certificate for *.billing.internal expired at exactly 16:10:00 UTC, 25 minutes ago. The auto-renewal had failed on 2026-03-23 because the ACME DNS challenge record was not propagated.",
+      "is_api_gateway_the_cause": "No. API gateway's external-facing certificates are valid. The gateway is also affected by the expired internal cert when connecting to billing-api, but it is a victim like payment-processor. The root cause is the expired certificate on billing-api."
+    },
+    "root_cause_service": "billing-api",
+    "correct_action": "renew_billing_api_certificate",
+    "red_herrings": ["cert-monitor"],
+    "ambiguity_level": 1,
+    "max_steps": 12,
+    "clarification_budget": 2,
+    "success_threshold": 0.60
+  },
+
+  "hard_001": {
+    "scenario_id": "hard_001",
+    "difficulty": "hard",
+    "title": "Feature Flag Catastrophe — Silent Model Breakage",
+    "description": "ALERT: Checkout completion rate collapsed to 11% — down from 94% baseline. Started 31 minutes ago. Four simultaneous service alerts. Payment processing appears degraded. Fraud detection latency spiking. Session store memory high. Auth service reporting elevated error rate. All started within 4 minutes of each other.",
+    "alerts": [
+      {"service": "fraud-detection", "severity": "critical", "message": "Scoring latency p99=18.4s — transactions timing out. Null scores returned on 89% of requests."},
+      {"service": "payment-gateway", "severity": "critical", "message": "Transaction failure rate 87% — upstream fraud scoring timeout"},
+      {"service": "session-store", "severity": "warning", "message": "Memory usage 91% of limit — eviction rate elevated"},
+      {"service": "auth-service", "severity": "warning", "message": "Token validation errors 14% — elevated but not critical"},
+      {"service": "feature-flags", "severity": "info", "message": "Flag fraud_model_v3 enabled 31 min ago by deploy pipeline — status: active"}
+    ],
+    "services_available": [
+      "fraud-detection",
+      "payment-gateway",
+      "session-store",
+      "auth-service",
+      "feature-flags",
+      "feature-store",
+      "ml-pipeline"
+    ],
+    "logs": {
+      "fraud-detection": [
+        "[10:22:01] INFO: Feature flag fraud_model_v3=True detected — loading new model weights",
+        "[10:22:03] INFO: FraudModelV3 loaded successfully — model expects feature vector including 'user_embedding_v3'",
+        "[10:22:04] ERROR: KeyError: 'user_embedding_v3' not found in feature vector",
+        "[10:22:04] ERROR: Model inference failed — returning null score",
+        "[10:22:05] ERROR: Null score policy: block transaction (conservative default)",
+        "[10:22:05] WARN: 100% of transactions blocked due to null fraud scores",
+        "[10:22:31] ERROR: 847 transactions blocked in last 30 minutes"
+      ],
+      "payment-gateway": [
+        "[10:22:10] ERROR: Fraud score null — transaction blocked per policy",
+        "[10:22:10] ERROR: Transaction ID txn_8821 failed — fraud check returned null",
+        "[10:22:11] ERROR: Transaction ID txn_8822 failed — fraud check returned null",
+        "[10:22:12] INFO: Gateway itself is healthy — no internal errors. Failures originate from fraud-detection upstream."
+      ],
+      "session-store": [
+        "[10:19:44] WARN: Memory usage 88% — approaching eviction threshold",
+        "[10:20:01] INFO: This is a pre-existing trend — memory has been growing since yesterday's traffic spike",
+        "[10:20:02] INFO: Eviction policy: LRU. No data loss. Service is operational.",
+        "[10:20:03] INFO: Not related to current checkout failure — session creation rate is normal"
+      ],
+      "auth-service": [
+        "[10:21:55] WARN: JWT token validation errors elevated — 14%",
+        "[10:21:56] INFO: Error pattern: tokens from mobile clients only — iOS app v2.1.4",
+        "[10:21:57] INFO: Known issue — iOS app v2.1.4 sends malformed Authorization header",
+        "[10:21:58] INFO: Desktop and Android clients unaffected. This predates the checkout failure by 6 hours."
+      ],
+      "feature-flags": [
+        "[10:21:58] INFO: Flag fraud_model_v3 enabled by deploy-pipeline at 10:21:58",
+        "[10:21:58] INFO: Flag description: Enable FraudModelV3 — requires feature store to have user_embedding_v3 populated",
+        "[10:21:59] WARN: Dependency check skipped — feature store readiness not verified before flag enable",
+        "[10:22:00] INFO: Rollback available: set fraud_model_v3=False to revert"
+      ],
+      "feature-store": [
+        "[10:22:05] INFO: Feature store healthy — 0 failed lookups",
+        "[10:22:05] INFO: Available features: user_age, user_country, purchase_history_30d, device_fingerprint",
+        "[10:22:06] WARN: user_embedding_v3 NOT present in feature store — pipeline scheduled for 18:00 today",
+        "[10:22:06] INFO: user_embedding_v3 population ETA: 7 hours 38 minutes from now"
+      ],
+      "ml-pipeline": [
+        "[10:15:00] INFO: user_embedding_v3 pipeline scheduled — ETA 18:00",
+        "[10:15:01] INFO: Pipeline status: PENDING — not started yet",
+        "[10:15:02] INFO: This pipeline was supposed to run before fraud_model_v3 flag was enabled"
+      ]
+    },
+    "clarification_map": {
+      "is_payment_gateway_the_cause": "No. Payment gateway logs explicitly state it is healthy and failures originate from upstream fraud-detection. Gateway is a symptom.",
+      "is_session_store_causing_checkouts_to_fail": "No. Session store memory issue is a pre-existing trend from yesterday's traffic spike. It is unrelated to the current checkout failure. Service is operational.",
+      "is_auth_service_causing_this": "No. Auth service errors affect only iOS app v2.1.4 mobile clients and predate the checkout failure by 6 hours. It is a separate known issue.",
+      "what_changed_31_minutes_ago": "The feature flag fraud_model_v3 was enabled by the deploy pipeline at 10:21:58. This activated FraudModelV3 which requires user_embedding_v3 in the feature store — a feature that will not be available until 18:00 today."
+    },
+    "root_cause_service": "fraud-detection",
+    "correct_action": "disable_feature_flag_fraud_model_v3",
+    "red_herrings": ["payment-gateway", "session-store", "auth-service"],
+    "key_investigation_services": ["feature-flags", "feature-store"],
+    "ambiguity_level": 2,
+    "max_steps": 15,
+    "clarification_budget": 3,
+    "success_threshold": 0.50
+  },
+
+  "hard_002": {
+    "scenario_id": "hard_002",
+    "difficulty": "hard",
+    "title": "Certificate Rotation Breaking Mutual TLS Across Service Mesh",
+    "description": "ALERT: Cross-service communication failures across the platform. Started 27 minutes ago. Multiple services reporting connection resets and TLS handshake failures. Some service pairs communicate fine, others fail completely. API gateway reporting 504s at 62%. Monitoring agent health checks failing. Database proxy connections dropping.",
+    "alerts": [
+      {"service": "certificate-manager", "severity": "info", "message": "Certificate rotation completed 27 min ago — new CA distributed to service mesh"},
+      {"service": "api-gateway", "severity": "critical", "message": "504 Gateway Timeout at 62% — upstream services unreachable via mTLS"},
+      {"service": "database-proxy", "severity": "critical", "message": "Connection pool drained — all connections reset by peer. 0 active connections."},
+      {"service": "monitoring-agent", "severity": "warning", "message": "Health check failures for 8/12 services — unable to establish TLS connections"},
+      {"service": "inter-service-mesh", "severity": "critical", "message": "Envoy sidecar TLS handshake failures at 71% — certificate validation errors"}
+    ],
+    "services_available": [
+      "certificate-manager",
+      "api-gateway",
+      "database-proxy",
+      "monitoring-agent",
+      "inter-service-mesh",
+      "secret-vault",
+      "service-registry"
+    ],
+    "logs": {
+      "certificate-manager": [
+        "[13:33:01] INFO: Scheduled certificate rotation initiated — rotating intermediate CA",
+        "[13:33:15] INFO: New intermediate CA generated — CN=mesh-intermediate-ca-2026-03",
+        "[13:33:30] INFO: New CA distributed to 8/12 services via configmap update",
+        "[13:33:31] WARN: 4 services did NOT receive new CA — configmap propagation timeout for: api-gateway, database-proxy, monitoring-agent, order-service",
+        "[13:33:45] INFO: Old intermediate CA valid until 2026-04-15 — BUT trust chain updated to require new CA",
+        "[13:33:46] ERROR: Services with old CA cannot validate certificates signed by new CA — mTLS handshake will fail"
+      ],
+      "api-gateway": [
+        "[13:34:02] ERROR: TLS handshake failed to order-service: certificate signed by unknown authority",
+        "[13:34:03] ERROR: TLS handshake failed to payment-service: certificate signed by unknown authority",
+        "[13:34:04] INFO: Connections to user-service and search-service working — they received new CA",
+        "[13:34:05] ERROR: 504 Gateway Timeout — 62% of upstream services unreachable. Gateway has old CA bundle."
+      ],
+      "database-proxy": [
+        "[13:34:10] ERROR: SSL_ERROR_SSL: certificate verify failed — connection to postgres-cluster reset",
+        "[13:34:11] ERROR: All 50 pooled connections terminated — TLS renegotiation failed with new certificates",
+        "[13:34:12] FATAL: Connection pool drained — 0 active, 0 idle. All queries failing.",
+        "[13:34:13] INFO: Database-proxy still has OLD CA bundle — cannot validate new certificates from postgres-cluster"
+      ],
+      "monitoring-agent": [
+        "[13:34:20] WARN: Health check to order-service failed — TLS handshake error",
+        "[13:34:21] WARN: Health check to payment-service failed — certificate signed by unknown authority",
+        "[13:34:22] INFO: Monitoring agent uses the OLD CA bundle — unable to connect to services that rotated",
+        "[13:34:23] INFO: 4 services healthy (received same old CA), 8 services unreachable. Monitoring agent is a VICTIM of the rotation, not a cause."
+      ],
+      "inter-service-mesh": [
+        "[13:34:30] ERROR: Envoy sidecar on order-service: upstream TLS handshake failed — peer certificate mismatch",
+        "[13:34:31] ERROR: 71% of inter-service connections failing — mix of old-CA and new-CA services cannot communicate",
+        "[13:34:32] INFO: Services that received new CA can talk to each other. Services with old CA can talk to each other. Cross-group communication fails.",
+        "[13:34:33] INFO: Root cause: certificate-manager rotated CA but propagation was incomplete — 4/12 services still on old CA"
+      ],
+      "secret-vault": [
+        "[13:34:40] INFO: Vault healthy — all secret engines operational",
+        "[13:34:41] INFO: PKI engine shows: old CA still valid, new CA active, both in trust store",
+        "[13:34:42] INFO: Vault itself uses a separately managed certificate — not affected by mesh rotation"
+      ],
+      "service-registry": [
+        "[13:34:50] INFO: Service registry healthy — all 12 services registered",
+        "[13:34:51] INFO: Registry operates over plaintext gRPC — not affected by TLS rotation",
+        "[13:34:52] INFO: All services reporting liveness probes as healthy (liveness is HTTP, not mTLS)"
+      ]
+    },
+    "clarification_map": {
+      "what_changed_27_minutes_ago": "Certificate-manager performed a scheduled intermediate CA rotation at 13:33:01. The new CA was only distributed to 8/12 services. 4 services (api-gateway, database-proxy, monitoring-agent, order-service) did not receive the update due to configmap propagation timeout.",
+      "is_api_gateway_the_cause": "No. API gateway is one of the 4 services that didn't receive the new CA bundle. It is a victim of the incomplete rotation, not the cause. The root cause is the certificate-manager's incomplete propagation.",
+      "is_database_proxy_the_cause": "No. Database-proxy is also one of the 4 services with the old CA. It cannot validate new certificates from postgres-cluster. It's a victim, same as api-gateway and monitoring-agent."
+    },
+    "root_cause_service": "certificate-manager",
+    "correct_action": "rollback_certificate_rotation",
+    "red_herrings": ["api-gateway", "database-proxy", "monitoring-agent"],
+    "key_investigation_services": ["inter-service-mesh", "secret-vault"],
+    "ambiguity_level": 2,
+    "max_steps": 15,
+    "clarification_budget": 3,
+    "success_threshold": 0.50
+  },
+
+  "hard_003": {
+    "scenario_id": "hard_003",
+    "difficulty": "hard",
+    "title": "Silent Data Corruption — Schema Migration Race Condition",
+    "description": "ALERT: Customer-facing data inconsistencies reported. Order totals not matching itemized prices. Inventory counts negative for 340 SKUs. Financial reconciliation job failing. Started approximately 45 minutes ago during maintenance window. Five services showing anomalies simultaneously.",
+    "alerts": [
+      {"service": "order-service", "severity": "critical", "message": "Data integrity check failed — 12% of orders have total != sum(line_items). 847 affected orders in last 45 minutes."},
+      {"service": "inventory-service", "severity": "critical", "message": "340 SKUs showing negative stock — constraint violations suppressed by application layer"},
+      {"service": "pricing-engine", "severity": "warning", "message": "Price lookup returning stale values — cache refresh failing with schema mismatch"},
+      {"service": "reconciliation-job", "severity": "critical", "message": "Nightly reconciliation FAILED — sum mismatch $47,221.84 between order and billing tables"},
+      {"service": "schema-migrator", "severity": "info", "message": "Migration v47→v48 completed successfully 45 min ago — 3 ALTER TABLE statements applied"}
+    ],
+    "services_available": [
+      "order-service",
+      "inventory-service",
+      "pricing-engine",
+      "reconciliation-job",
+      "schema-migrator",
+      "database-primary",
+      "cache-invalidator"
+    ],
+    "logs": {
+      "order-service": [
+        "[02:15:12] ERROR: Order ORD-881204 total=149.97 but sum(line_items)=179.97 — $30.00 discrepancy",
+        "[02:15:13] ERROR: Column 'discount_amount' returning NULL for orders created after 02:00:00",
+        "[02:15:14] WARN: Application reading discount_amount from column index 7, but schema change moved it to index 9",
+        "[02:15:15] INFO: Orders created BEFORE 02:00:00 are correct — issue started with schema migration"
+      ],
+      "inventory-service": [
+        "[02:15:20] ERROR: SKU-44821 stock=-3 — should be impossible with CHECK constraint",
+        "[02:15:21] WARN: CHECK constraint on stock_count was DROPPED by migration v48 and not re-added",
+        "[02:15:22] ERROR: Concurrent decrements racing without constraint — overselling occurring",
+        "[02:15:23] INFO: Inventory service code assumes CHECK constraint prevents negative stock — no application-level validation"
+      ],
+      "pricing-engine": [
+        "[02:15:30] ERROR: Cache refresh query failed — column 'base_price_cents' not found, renamed to 'unit_price_cents' in v48",
+        "[02:15:31] WARN: Falling back to stale cache from 02:00:00 — prices may be outdated",
+        "[02:15:32] INFO: Pricing engine reads from a materialized view that was NOT updated after schema migration",
+        "[02:15:33] INFO: Pricing engine is a VICTIM of the schema change — it will self-heal when the view is refreshed"
+      ],
+      "reconciliation-job": [
+        "[02:15:40] FATAL: Reconciliation failed — orders table has $847,221.84, billing table has $894,443.68",
+        "[02:15:41] ERROR: $47,221.84 discrepancy — matches expected loss from NULL discount_amount on affected orders",
+        "[02:15:42] INFO: Reconciliation job logic is correct — it's detecting a real data integrity issue",
+        "[02:15:43] INFO: This job is a REPORTER, not a cause. The data was corrupted by the schema change."
+      ],
+      "schema-migrator": [
+        "[01:59:58] INFO: Starting migration v47→v48 in maintenance window",
+        "[02:00:01] INFO: ALTER TABLE orders ADD COLUMN shipping_method VARCHAR(50)",
+        "[02:00:03] INFO: ALTER TABLE orders — column reorder: discount_amount moved from position 7 to position 9",
+        "[02:00:05] WARN: ALTER TABLE inventory DROP CONSTRAINT chk_stock_positive — marked for re-addition in v49",
+        "[02:00:06] ERROR: Migration v48 did NOT update application column mappings — ORM cache stale",
+        "[02:00:07] INFO: Migration completed — but dependent materialized views NOT refreshed",
+        "[02:00:08] WARN: Post-migration verification SKIPPED — maintenance window timeout approaching"
+      ],
+      "database-primary": [
+        "[02:00:10] INFO: Schema version now v48 — 3 DDL statements applied",
+        "[02:00:11] INFO: Database engine healthy — no internal errors",
+        "[02:00:12] INFO: Connection pool stable — 42 active, 58 idle",
+        "[02:00:13] INFO: The database applied exactly what the migration asked for. The migration itself was the problem."
+      ],
+      "cache-invalidator": [
+        "[02:00:15] INFO: Cache invalidation triggered for tables: orders, inventory",
+        "[02:00:16] WARN: Materialized view 'mv_pricing' was NOT in invalidation list — oversight in migration script",
+        "[02:00:17] INFO: Application ORM cache cleared at 02:00:15, but ORM re-read column positions from already-stale metadata",
+        "[02:00:18] INFO: Cache invalidator did its job correctly — the invalidation LIST was incomplete"
+      ]
+    },
+    "clarification_map": {
+      "is_inventory_service_the_cause": "No. Inventory service is experiencing negative stock because migration v48 dropped the CHECK constraint (chk_stock_positive) and it was 'scheduled for re-addition in v49.' The inventory service assumes the database constraint prevents negative values. The migration broke this assumption.",
+      "is_reconciliation_job_the_cause": "No. The reconciliation job is correctly detecting a real data integrity issue. It's a reporter/alerter, not a cause. The $47,221.84 discrepancy matches the expected loss from NULL discount values on post-migration orders.",
+      "is_pricing_engine_the_cause": "No. Pricing engine is reading from a materialized view that was not refreshed after the schema migration. It will self-heal when the view is refreshed. It's a victim of incomplete migration steps.",
+      "what_happened_during_maintenance": "Schema migration v48 made 3 changes: (1) added shipping_method column which shifted discount_amount position, (2) dropped stock CHECK constraint, (3) did NOT refresh materialized views or update ORM column mappings. Post-migration verification was skipped."
+    },
+    "root_cause_service": "schema-migrator",
+    "correct_action": "rollback_migration_v48",
+    "red_herrings": ["inventory-service", "reconciliation-job", "pricing-engine"],
+    "key_investigation_services": ["database-primary", "cache-invalidator"],
+    "ambiguity_level": 2,
+    "max_steps": 15,
+    "clarification_budget": 3,
+    "success_threshold": 0.50
+  }
+}
