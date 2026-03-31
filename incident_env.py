@@ -12,6 +12,7 @@ import uuid
 from typing import Any, Dict, List, Optional
 
 from fastapi import FastAPI, HTTPException, Query
+from fastapi.responses import HTMLResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
@@ -159,6 +160,125 @@ def _initial_state(scenario: Dict) -> Dict:
 
 
 # ─── Routes ───────────────────────────────────────────────────────────────────
+
+@app.get("/", response_class=HTMLResponse)
+def root():
+    """Landing page for the IncidentMind environment."""
+    return """
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>IncidentMind — OpenEnv RL Environment</title>
+        <style>
+            * { margin: 0; padding: 0; box-sizing: border-box; }
+            body {
+                font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+                background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+                color: #e0e0e0;
+                min-height: 100vh;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
+            .container {
+                max-width: 700px;
+                padding: 3rem;
+                background: rgba(255,255,255,0.05);
+                border-radius: 20px;
+                border: 1px solid rgba(255,255,255,0.1);
+                backdrop-filter: blur(10px);
+                text-align: center;
+            }
+            .emoji { font-size: 4rem; margin-bottom: 1rem; }
+            h1 {
+                font-size: 2.2rem;
+                background: linear-gradient(90deg, #ff6b6b, #ffa500, #ff6b6b);
+                -webkit-background-clip: text;
+                -webkit-text-fill-color: transparent;
+                margin-bottom: 0.5rem;
+            }
+            .subtitle { color: #aaa; font-size: 1.05rem; margin-bottom: 2rem; }
+            .badge {
+                display: inline-block;
+                background: #22c55e;
+                color: #000;
+                padding: 0.3rem 1rem;
+                border-radius: 20px;
+                font-weight: 700;
+                font-size: 0.85rem;
+                margin-bottom: 2rem;
+            }
+            .stats {
+                display: grid;
+                grid-template-columns: repeat(3, 1fr);
+                gap: 1rem;
+                margin-bottom: 2rem;
+            }
+            .stat {
+                background: rgba(255,255,255,0.08);
+                padding: 1rem;
+                border-radius: 12px;
+            }
+            .stat-val { font-size: 1.8rem; font-weight: 700; color: #fff; }
+            .stat-lbl { font-size: 0.8rem; color: #999; margin-top: 0.3rem; }
+            .endpoints {
+                text-align: left;
+                background: rgba(0,0,0,0.3);
+                padding: 1.2rem;
+                border-radius: 12px;
+                font-family: 'Cascadia Code', 'Fira Code', monospace;
+                font-size: 0.85rem;
+                line-height: 1.8;
+            }
+            .endpoints span { color: #22c55e; }
+            .footer {
+                margin-top: 2rem;
+                font-size: 0.8rem;
+                color: #666;
+            }
+            a { color: #ffa500; text-decoration: none; }
+            a:hover { text-decoration: underline; }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <div class="emoji">🚨</div>
+            <h1>IncidentMind</h1>
+            <p class="subtitle">Ambiguity-Aware Production Incident Response RL Environment</p>
+            <div class="badge">● RUNNING — v1.1.0</div>
+            <div class="stats">
+                <div class="stat">
+                    <div class="stat-val">9</div>
+                    <div class="stat-lbl">Scenarios</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-val">3</div>
+                    <div class="stat-lbl">Difficulty Levels</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-val">0→1</div>
+                    <div class="stat-lbl">Score Range</div>
+                </div>
+            </div>
+            <div class="endpoints">
+                <span>GET</span>  /health — Health check<br>
+                <span>POST</span> /reset?difficulty=easy|medium|hard<br>
+                <span>POST</span> /step — Take an action<br>
+                <span>GET</span>  /state — Current state<br>
+                <span>GET</span>  /tasks — List all 9 tasks<br>
+                <span>GET</span>  /docs — Interactive API docs
+            </div>
+            <p class="footer">
+                Meta PyTorch OpenEnv Hackathon 2026 — Hariharan M &amp; Asmitha M<br>
+                <a href="/docs">Open API Docs →</a>
+            </p>
+        </div>
+    </body>
+    </html>
+    """
+
 
 @app.get("/health")
 def health():
