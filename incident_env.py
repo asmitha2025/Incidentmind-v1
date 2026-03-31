@@ -56,6 +56,7 @@ class Observation(BaseModel):
     confidence_signal: float
     blast_radius: int
     resolved: bool
+    possible_actions: List[str] = []
 
 
 class StepResult(BaseModel):
@@ -135,6 +136,7 @@ def _build_observation(state: Dict, scenario: Dict) -> Observation:
         confidence_signal=_compute_confidence_signal(state, scenario),
         blast_radius=state["blast_radius"],
         resolved=state["resolved"],
+        possible_actions=scenario.get("possible_actions", []),
     )
 
 

@@ -39,10 +39,12 @@ You must respond with a single JSON action. Available actions:
 
 2. Ask a clarification question:
    {"action_type": "ask_clarification", "target": "question_key"}
-   Valid question keys: when_did_this_start, is_X_the_cause, what_changed_recently, is_X_causing_this
+   Valid question keys come from the clarification options in the observation.
 
 3. Resolve the incident:
-   {"action_type": "resolve", "resolution_action": "your_fix_action"}
+   {"action_type": "resolve", "resolution_action": "exact_action_string"}
+   CRITICAL: The resolution_action MUST be one of the exact strings from the "possible_actions" list in the observation.
+   Do NOT write free-text descriptions. Use the EXACT string from the list.
 
 4. Escalate to human:
    {"action_type": "escalate"}
@@ -50,9 +52,10 @@ You must respond with a single JSON action. Available actions:
 Strategy:
 - Investigate services whose logs are most likely to reveal root cause FIRST
 - Do NOT act on the most obvious-looking alert without evidence
-- Check logs before resolving
+- Check logs of at least 2-3 services before resolving
 - Trace dependency chains — a failing service may be a symptom, not a cause
 - Use clarification questions when uncertain about the root cause
+- When resolving, pick the EXACT action string from possible_actions that matches the root cause you identified
 - Only resolve when you have clear log evidence pointing to the root cause
 
 Respond ONLY with valid JSON. No explanation, no markdown, no extra text."""
