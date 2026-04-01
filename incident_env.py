@@ -460,4 +460,6 @@ def get_state():
         **_state,
         "confidence_signal": _compute_confidence_signal(_state, _current_scenario),
         "scenario_id": _current_scenario.get("scenario_id"),
+        "root_cause": _current_scenario.get("root_cause_service"),
+        "possible_actions": _current_scenario.get("possible_actions", []),
     }

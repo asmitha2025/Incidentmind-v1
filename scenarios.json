@@ -129,7 +129,7 @@
       "is_message_queue_the_cause": "No. Message queue is healthy — it's accumulating messages because the consumer (order-processor) is dead. Queue depth is a symptom, not a cause."
     },
     "root_cause_service": "order-processor",
-    "correct_action": "restart_order_processor_with_memory_fix",
+    "correct_action": "restart_order_processor_with_memory_limit",
     "red_herrings": [
       "message-queue"
     ],
@@ -201,7 +201,7 @@
       "is_log_aggregator_the_cause": "No. Log aggregator runs on a separate storage volume. Its shipping failures are due to network timeouts, a separate minor issue. It is not related to the database disk problem."
     },
     "root_cause_service": "postgres-replica",
-    "correct_action": "clean_wal_and_fix_archiving",
+    "correct_action": "clear_wal_archive_and_resize_disk",
     "red_herrings": [
       "log-aggregator"
     ],
@@ -296,11 +296,11 @@
     "clarification_budget": 2,
     "success_threshold": 0.6,
     "possible_actions": [
+      "rollback_model_reload",
       "redistribute_gpu_workload",
       "restart_service",
       "scale_horizontally",
-      "increase_timeout",
-      "disable_ml_inference"
+      "increase_timeout"
     ]
   },
   "medium_002": {
