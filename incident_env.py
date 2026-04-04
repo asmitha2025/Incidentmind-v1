@@ -2,7 +2,7 @@
 IncidentMind — Ambiguity-Aware Production Incident Response Environment
 OpenEnv-compliant FastAPI server implementing step() / reset() / state()
 
-Hariharan M & Asmitha M | Meta PyTorch OpenEnv Hackathon 2026
+Meta PyTorch OpenEnv Hackathon 2026
 """
 
 import json
@@ -170,110 +170,249 @@ def root():
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>IncidentMind — OpenEnv RL Environment</title>
+        <title>IncidentMind | OpenEnv RL Environment</title>
+        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
         <style>
-            * { margin: 0; padding: 0; box-sizing: border-box; }
+            :root {
+                --bg-primary: #0a0a0f;
+                --bg-secondary: #12121a;
+                --bg-card: #1a1a24;
+                --text-main: #f3f4f6;
+                --text-muted: #9ca3af;
+                --accent: #3b82f6;
+                --accent-hover: #60a5fa;
+                --border: #272733;
+                --success: #10b981;
+            }
             body {
-                font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
-                background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
-                color: #e0e0e0;
+                font-family: 'Inter', system-ui, -apple-system, sans-serif;
+                background-color: var(--bg-primary);
+                color: var(--text-main);
+                margin: 0;
                 min-height: 100vh;
                 display: flex;
+                flex-direction: column;
                 align-items: center;
-                justify-content: center;
+                padding: 4rem 2rem;
+                line-height: 1.5;
             }
             .container {
-                max-width: 700px;
-                padding: 3rem;
-                background: rgba(255,255,255,0.05);
-                border-radius: 20px;
-                border: 1px solid rgba(255,255,255,0.1);
-                backdrop-filter: blur(10px);
+                max-width: 800px;
+                width: 100%;
+            }
+            header {
                 text-align: center;
+                margin-bottom: 3.5rem;
             }
-            .emoji { font-size: 4rem; margin-bottom: 1rem; }
+            .icon {
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                width: 64px;
+                height: 64px;
+                background: rgba(59, 130, 246, 0.1);
+                color: var(--accent);
+                border-radius: 16px;
+                margin-bottom: 1.5rem;
+            }
+            .icon svg {
+                width: 32px;
+                height: 32px;
+                stroke-width: 2;
+            }
             h1 {
-                font-size: 2.2rem;
-                background: linear-gradient(90deg, #ff6b6b, #ffa500, #ff6b6b);
-                -webkit-background-clip: text;
-                -webkit-text-fill-color: transparent;
-                margin-bottom: 0.5rem;
-            }
-            .subtitle { color: #aaa; font-size: 1.05rem; margin-bottom: 2rem; }
-            .badge {
-                display: inline-block;
-                background: #22c55e;
-                color: #000;
-                padding: 0.3rem 1rem;
-                border-radius: 20px;
+                font-size: 2.5rem;
                 font-weight: 700;
-                font-size: 0.85rem;
-                margin-bottom: 2rem;
+                margin: 0 0 0.75rem 0;
+                letter-spacing: -0.02em;
             }
-            .stats {
+            .subtitle {
+                font-size: 1.125rem;
+                color: var(--text-muted);
+                margin: 0 0 1.5rem 0;
+            }
+            .status-badge {
+                display: inline-flex;
+                align-items: center;
+                gap: 0.5rem;
+                background: rgba(16, 185, 129, 0.1);
+                color: var(--success);
+                padding: 0.5rem 1rem;
+                border-radius: 9999px;
+                font-weight: 500;
+                font-size: 0.875rem;
+                border: 1px solid rgba(16, 185, 129, 0.2);
+            }
+            .status-badge::before {
+                content: '';
+                width: 8px;
+                height: 8px;
+                background-color: var(--success);
+                border-radius: 50%;
+                box-shadow: 0 0 8px var(--success);
+            }
+            .grid {
                 display: grid;
                 grid-template-columns: repeat(3, 1fr);
-                gap: 1rem;
-                margin-bottom: 2rem;
+                gap: 1.5rem;
+                margin-bottom: 3rem;
             }
-            .stat {
-                background: rgba(255,255,255,0.08);
-                padding: 1rem;
+            .card {
+                background-color: var(--bg-card);
+                border: 1px solid var(--border);
                 border-radius: 12px;
+                padding: 1.5rem;
+                text-align: center;
+                transition: transform 0.2s, border-color 0.2s;
             }
-            .stat-val { font-size: 1.8rem; font-weight: 700; color: #fff; }
-            .stat-lbl { font-size: 0.8rem; color: #999; margin-top: 0.3rem; }
-            .endpoints {
-                text-align: left;
-                background: rgba(0,0,0,0.3);
-                padding: 1.2rem;
+            .card:hover {
+                transform: translateY(-2px);
+                border-color: var(--accent);
+            }
+            .card-value {
+                font-size: 2rem;
+                font-weight: 700;
+                margin-bottom: 0.25rem;
+            }
+            .card-label {
+                font-size: 0.875rem;
+                color: var(--text-muted);
+                font-weight: 500;
+                text-transform: uppercase;
+                letter-spacing: 0.05em;
+            }
+            .api-section {
+                background-color: var(--bg-secondary);
+                border: 1px solid var(--border);
                 border-radius: 12px;
-                font-family: 'Cascadia Code', 'Fira Code', monospace;
-                font-size: 0.85rem;
-                line-height: 1.8;
+                overflow: hidden;
+                margin-bottom: 3rem;
             }
-            .endpoints span { color: #22c55e; }
-            .footer {
-                margin-top: 2rem;
-                font-size: 0.8rem;
-                color: #666;
+            .api-header {
+                padding: 1.25rem 1.5rem;
+                border-bottom: 1px solid var(--border);
+                font-weight: 600;
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
             }
-            a { color: #ffa500; text-decoration: none; }
-            a:hover { text-decoration: underline; }
+            .endpoint {
+                padding: 1rem 1.5rem;
+                display: flex;
+                align-items: center;
+                border-bottom: 1px solid var(--border);
+            }
+            .endpoint:last-child {
+                border-bottom: none;
+            }
+            .method {
+                font-family: 'SFMono-Regular', Consolas, monospace;
+                font-size: 0.875rem;
+                font-weight: 600;
+                width: 60px;
+            }
+            .method.get { color: #3b82f6; }
+            .method.post { color: #10b981; }
+            .path {
+                font-family: 'SFMono-Regular', Consolas, monospace;
+                font-size: 0.9rem;
+                color: #e5e7eb;
+                flex: 1;
+            }
+            .desc {
+                color: var(--text-muted);
+                font-size: 0.9rem;
+            }
+            footer {
+                text-align: center;
+                color: var(--text-muted);
+                font-size: 0.875rem;
+                border-top: 1px solid var(--border);
+                padding-top: 2rem;
+            }
+            .btn-docs {
+                display: inline-flex;
+                align-items: center;
+                gap: 0.5rem;
+                background-color: var(--accent);
+                color: white;
+                text-decoration: none;
+                padding: 0.5rem 1.25rem;
+                border-radius: 6px;
+                font-weight: 500;
+                font-size: 0.875rem;
+                transition: background-color 0.2s;
+            }
+            .btn-docs:hover {
+                background-color: var(--accent-hover);
+            }
         </style>
     </head>
     <body>
         <div class="container">
-            <div class="emoji">🚨</div>
-            <h1>IncidentMind</h1>
-            <p class="subtitle">Ambiguity-Aware Production Incident Response RL Environment</p>
-            <div class="badge">● RUNNING — v1.1.0</div>
-            <div class="stats">
-                <div class="stat">
-                    <div class="stat-val">9</div>
-                    <div class="stat-lbl">Scenarios</div>
+            <header>
+                <div class="icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                    </svg>
                 </div>
-                <div class="stat">
-                    <div class="stat-val">3</div>
-                    <div class="stat-lbl">Difficulty Levels</div>
+                <h1>IncidentMind</h1>
+                <p class="subtitle">Ambiguity-Aware Production Incident Response Environment</p>
+                <div class="status-badge">System Operational — v1.1.0</div>
+            </header>
+
+            <div class="grid">
+                <div class="card">
+                    <div class="card-value">9</div>
+                    <div class="card-label">Scenarios</div>
                 </div>
-                <div class="stat">
-                    <div class="stat-val">0→1</div>
-                    <div class="stat-lbl">Score Range</div>
+                <div class="card">
+                    <div class="card-value">3</div>
+                    <div class="card-label">Difficulties</div>
+                </div>
+                <div class="card">
+                    <div class="card-value" style="display:flex;align-items:baseline;justify-content:center;gap:2px;">
+                        <span>0.0</span><span style="color:var(--text-muted);font-weight:400;font-size:1.5rem">/</span><span>1.0</span>
+                    </div>
+                    <div class="card-label">Score Range</div>
                 </div>
             </div>
-            <div class="endpoints">
-                <span>GET</span>  /health — Health check<br>
-                <span>POST</span> /reset?difficulty=easy|medium|hard<br>
-                <span>POST</span> /step — Take an action<br>
-                <span>GET</span>  /state — Current state<br>
-                <span>GET</span>  /tasks — List all 9 tasks<br>
-                <span>GET</span>  /docs — Interactive API docs
+
+            <div class="api-section">
+                <div class="api-header">
+                    <span>API Reference</span>
+                    <a href="/docs" class="btn-docs">Open Interactive Docs</a>
+                </div>
+                <div class="endpoint">
+                    <span class="method get">GET</span>
+                    <span class="path">/health</span>
+                    <span class="desc">System health check</span>
+                </div>
+                <div class="endpoint">
+                    <span class="method post">POST</span>
+                    <span class="path">/reset?difficulty={level}</span>
+                    <span class="desc">Initialize scenario</span>
+                </div>
+                <div class="endpoint">
+                    <span class="method post">POST</span>
+                    <span class="path">/step</span>
+                    <span class="desc">Execute single action</span>
+                </div>
+                <div class="endpoint">
+                    <span class="method get">GET</span>
+                    <span class="path">/state</span>
+                    <span class="desc">Retrieve complete state</span>
+                </div>
+                <div class="endpoint">
+                    <span class="method get">GET</span>
+                    <span class="path">/tasks</span>
+                    <span class="desc">List valid scenarios</span>
+                </div>
             </div>
-            <p class="footer">
-                Meta PyTorch OpenEnv Hackathon 2026 — Hariharan M &amp; Asmitha M<br>
-                <a href="/docs">Open API Docs →</a>
-            </p>
+
+            <footer>
+                Meta PyTorch OpenEnv Hackathon 2026
+            </footer>
         </div>
     </body>
     </html>

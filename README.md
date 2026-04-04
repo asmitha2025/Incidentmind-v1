@@ -21,8 +21,6 @@ tags:
 
 **Meta PyTorch OpenEnv Hackathon 2026**
 
-*Hariharan M & Asmitha M*
-
 [![HuggingFace Space](https://img.shields.io/badge/🤗%20HuggingFace-Live%20Demo-blue)](https://huggingface.co/spaces/hariharan1828/incidentmind)
 [![OpenEnv](https://img.shields.io/badge/OpenEnv-Compliant-brightgreen)]()
 [![Docker](https://img.shields.io/badge/Docker-Ready-2496ED)]()
@@ -411,6 +409,6 @@ This project is submitted as part of the **Meta PyTorch OpenEnv Hackathon 2026**
 
 <div align="center">
 
-*Built by **Hariharan M & Asmitha M** · IncidentMind v1.1.0 · Powered by OPTI-FAB confidence-gating architecture*
+*IncidentMind v1.1.0 · Powered by OPTI-FAB confidence-gating architecture*
 
 </div>
