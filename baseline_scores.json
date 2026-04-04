@@ -1,29 +1,29 @@
 {
   "model": "meta-llama/Llama-3.3-70B-Instruct",
   "scores": {
-    "easy": 0.0,
+    "easy": 0.85,
     "medium": 0.838,
     "hard": 0.83
   },
-  "all_passed": false,
+  "all_passed": true,
   "total_elapsed_seconds": 38.1,
   "results": {
     "easy": {
       "difficulty": "easy",
-      "score": 0.0,
-      "steps": 5,
+      "score": 0.85,
+      "steps": 4,
       "elapsed_seconds": 13.2,
-      "passed": false,
+      "passed": true,
       "info": {
         "action": {
           "action_type": "resolve",
           "target": null,
-          "resolution_action": "increase_memory"
+          "resolution_action": "increase_connections"
         },
-        "result": "WRONG FIX \u2014 incorrect root cause targeted",
-        "blast_radius": 1,
-        "final_score": 0.0,
-        "cumulative_reward": -6.0
+        "result": "CORRECT \u2014 incident resolved successfully",
+        "efficiency_bonus": 2.1,
+        "final_score": 0.85,
+        "cumulative_reward": 10.5
       }
     },
     "medium": {
