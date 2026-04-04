@@ -86,6 +86,16 @@ def call_llm(observation: dict) -> dict:
         return {"action_type": "escalate"}
 
 
+def log_start(task: str, env: str, model: str):
+    print(f"[START] {json.dumps({'task': task, 'env': env, 'model': model})}", flush=True)
+
+def log_step(step: int, action: str, reward: float, done: bool, error: str = None):
+    print(f"[STEP] {json.dumps({'step': step, 'action': action, 'reward': round(reward, 2), 'done': done, 'error': error})}", flush=True)
+
+def log_end(success: bool, steps: int, score: float, rewards: list):
+    print(f"[END] {json.dumps({'success': success, 'steps': steps, 'score': round(score, 2), 'rewards': [round(r, 2) for r in rewards]})}", flush=True)
+
+
 def run_episode(difficulty: str) -> dict:
     """Run one complete episode for the given difficulty. Returns result dict."""
     print(f"\n{'='*55}")
@@ -102,10 +112,13 @@ def run_episode(difficulty: str) -> dict:
     print(f"  Scenario: {observation['scenario_id']}")
     print(f"  Alerts: {len(observation['alerts'])}")
 
+    log_start(task=difficulty, env="IncidentMind", model=MODEL)
+
     step = 0
     done = False
     final_score = 0.0
     final_info = {}
+    rewards = []
 
     while not done:
         step += 1
@@ -129,14 +142,21 @@ def run_episode(difficulty: str) -> dict:
         done        = result["done"]
         final_info  = result["info"]
 
+        rewards.append(reward)
+        log_step(step=step, action=json.dumps(action), reward=reward, done=done, error=None)
+
         print(f"           reward={reward:+.2f} | confidence={observation['confidence_signal']:.2f} | blast_radius={observation['blast_radius']}")
 
         if done:
             final_score = final_info.get("final_score", 0.0)
 
     elapsed_total = time.time() - episode_start
+    
+    success = final_score >= _get_threshold(difficulty)
+    log_end(success=success, steps=step, score=final_score, rewards=rewards)
+    
     print(f"\n  RESULT: score={final_score:.3f} | steps={step} | time={elapsed_total:.1f}s")
-    print(f"  {'✅ PASS' if final_score >= _get_threshold(difficulty) else '❌ BELOW THRESHOLD'}")
+    print(f"  {'✅ PASS' if success else '❌ BELOW THRESHOLD'}")
 
     return {
         "difficulty": difficulty,
