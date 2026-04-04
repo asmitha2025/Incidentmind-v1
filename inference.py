@@ -80,25 +80,7 @@ def call_llm(observation: dict) -> dict:
             text = text.split("```")[1]
             if text.startswith("json"):
                 text = text[4:]
-        action = json.loads(text.strip())
-
-        # Validation guard for 'resolve' actions
-        if action.get("action_type") == "resolve":
-            resolution = action.get("resolution_action")
-            possible = observation.get("possible_actions", [])
-            if resolution and possible and resolution not in possible:
-                # Fallback to closest match using word overlap
-                best_match = possible[0]
-                max_overlap = -1
-                for opt in possible:
-                    overlap = len(set(resolution.replace('_', ' ').split()) & set(opt.replace('_', ' ').split()))
-                    if overlap > max_overlap:
-                        max_overlap = overlap
-                        best_match = opt
-                print(f"    [GUARD] LLM hallucinated '{resolution}'. Auto-correcting to '{best_match}'.")
-                action["resolution_action"] = best_match
-
-        return action
+        return json.loads(text.strip())
     except Exception as e:
         print(f"    [LLM ERROR] {e} — defaulting to escalate")
         return {"action_type": "escalate"}
