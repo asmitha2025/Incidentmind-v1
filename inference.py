@@ -174,7 +174,7 @@ def run_episode(difficulty: str) -> dict:
     log_end(success=success, steps=step, score=final_score, rewards=rewards)
     
     print(f"\n  RESULT: score={final_score:.3f} | steps={step} | time={elapsed_total:.1f}s")
-    print(f"  {'✅ PASS' if success else '❌ BELOW THRESHOLD'}")
+    print(f"  {'[PASS]' if success else '[FAIL] BELOW THRESHOLD'}")
 
     return {
         "difficulty": difficulty,
@@ -212,7 +212,7 @@ def main():
     print("  FINAL SCORES")
     print("="*55)
     for difficulty, result in results.items():
-        status = "✅ PASS" if result["passed"] else "❌ FAIL"
+        status = "[PASS]" if result["passed"] else "[FAIL]"
         print(f"  {difficulty.upper():8s} | score={result['score']:.3f} | steps={result['steps']:2d} | {status}")
     print(f"\n  Total time: {total_elapsed:.1f}s / 1200s max")
     print("="*55)
@@ -230,9 +230,9 @@ def main():
     print("\n  Saved → baseline_scores.json")
 
     if not output["all_passed"]:
-        print("\n  ⚠️  Not all tasks passed. Review scores above.")
+        print("\n  [!] Not all tasks passed. Review scores above.")
     else:
-        print("\n  🎉 All tasks passed. Ready to submit.")
+        print("\n  [SUCCESS] All tasks passed. Ready to submit.")
 
 
 if __name__ == "__main__":
