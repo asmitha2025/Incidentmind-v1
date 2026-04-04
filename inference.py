@@ -227,7 +227,7 @@ def main():
     }
     with open("baseline_scores.json", "w") as f:
         json.dump(output, f, indent=2)
-    print("\n  Saved → baseline_scores.json")
+    print("\n  Saved -> baseline_scores.json")
 
     if not output["all_passed"]:
         print("\n  [!] Not all tasks passed. Review scores above.")
