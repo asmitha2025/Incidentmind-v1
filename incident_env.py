@@ -58,6 +58,7 @@ class Observation(BaseModel):
     blast_radius: int
     resolved: bool
     possible_actions: List[str] = []
+    clarification_keys: List[str] = []   # valid keys for ask_clarification
 
 
 class StepResult(BaseModel):
@@ -138,6 +139,7 @@ def _build_observation(state: Dict, scenario: Dict) -> Observation:
         blast_radius=state["blast_radius"],
         resolved=state["resolved"],
         possible_actions=scenario.get("possible_actions", []),
+        clarification_keys=list(scenario.get("clarification_map", {}).keys()),
     )
 
 
