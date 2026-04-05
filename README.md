@@ -106,11 +106,11 @@ Baseline agent: **Llama-3.3-70B-Instruct** (untrained, zero-shot via HuggingFace
 
 | Difficulty | Score | Threshold | Result |
 |:--|:--:|:--:|:--:|
-| **Easy** | 0.825 | 0.70 | ✅ Pass |
-| **Medium** | 0.838 | 0.60 | ✅ Pass |
-| **Hard** | 0.830 | 0.50 | ✅ Pass |
+| **Easy** | 0.906 | 0.70 | ✅ Pass |
+| **Medium** | 0.887 | 0.60 | ✅ Pass |
+| **Hard** | 0.650 | 0.50 | ✅ Pass |
 
-The baseline demonstrates that IncidentMind is **solvable by capable LLMs** while remaining challenging enough for RL training to produce meaningful improvements. The `possible_actions` list in each observation ensures agents select from valid resolution strings rather than hallucinating action names.
+The baseline demonstrates that IncidentMind is **solvable by capable LLMs** while remaining challenging enough for RL training to produce meaningful improvements. The `possible_actions` list in each observation ensures agents select from valid resolution strings, and `clarification_keys` provides the exact questions they can ask, preventing hallucinated actions.
 
 ---
 
@@ -152,6 +152,7 @@ IncidentMind exposes a standard OpenEnv-compliant REST API.
 | `logs_seen` | `dict[str, list[str]]` | Logs already retrieved, keyed by service |
 | `actions_taken` | `list[dict]` | Full history of actions taken this episode |
 | `possible_actions` | `list[str]` | Valid resolution strings for the current scenario |
+| `clarification_keys` | `list[str]` | Valid clarification question keys for the current scenario |
 | `clarifications_remaining` | `int` | Remaining clarification budget |
 | `steps_remaining` | `int` | Steps left before timeout |
 | `confidence_signal` | `float` | 0.0–1.0 — rises with useful investigation, falls with blast radius |
