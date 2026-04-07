@@ -335,19 +335,19 @@ incidentmind/
 ┌──────────────────────────────────────────────────────────────────┐
 │                     IncidentMind Environment                     │
 │                                                                  │
-│  ┌───────────┐    ┌──────────────┐    ┌──────────────────────┐  │
-│  │  Scenario  │───▶│    State     │───▶│    Observation        │  │
-│  │  Selector  │    │    Manager   │    │    Builder            │  │
-│  │ (random)   │    │              │    │                      │  │
+│  ┌───────────┐    ┌──────────────┐    ┌──────────────────────┐   │
+│  │  Scenario  │───▶│    State     │───▶│    Observation     │  │
+│  │  Selector  │    │    Manager   │    │    Builder          │  │
+│  │ (random)   │    │              │    │                     │  │
 │  └───────────┘    │ • logs_seen  │    │ • alerts             │  │
 │                   │ • blast_rad  │    │ • confidence_signal  │  │
 │                   │ • step_count │    │ • possible_actions   │  │
 │                   └──────┬───────┘    └──────────────────────┘  │
-│                          │                                       │
-│                          ▼                                       │
+│                          │                                      │
+│                          ▼                                      │
 │                   ┌──────────────┐    ┌──────────────────────┐  │
-│                   │   Reward     │───▶│    Grader             │  │
-│                   │   Calculator │    │   (deterministic)     │  │
+│                   │   Reward     │───▶│    Grader            │  │
+│                   │   Calculator │    │   (deterministic)    │  │
 │                   │              │    │                      │  │
 │                   │ • +10 correct│    │ • grade_easy()       │  │
 │                   │ • -3  wrong  │    │ • grade_medium()     │  │
@@ -359,12 +359,12 @@ incidentmind/
           │  POST /reset?difficulty=X             │
           │                                      ▼
 ┌──────────────────────────────────────────────────────────────────┐
-│                     RL Agent / Inference Client                   │
+│                     RL Agent / Inference Client                  │
 │                                                                  │
-│  ┌─────────────┐    ┌──────────────┐    ┌──────────────────┐   │
-│  │ Observation │───▶│     LLM      │───▶│   Action        │   │
-│  │ Parser      │    │ (Llama-3.3)  │    │   Formatter      │   │
-│  └─────────────┘    └──────────────┘    └──────────────────┘   │
+│  ┌─────────────┐    ┌──────────────┐    ┌──────────────────┐     │
+│  │ Observation │───▶│     LLM      │───▶│   Action        │     │
+│  │ Parser      │    │ (Llama-3.3)  │    │   Formatter      │     │
+│  └─────────────┘    └──────────────┘    └──────────────────┘     │
 └──────────────────────────────────────────────────────────────────┘
 ```
 
