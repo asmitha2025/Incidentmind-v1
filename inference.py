@@ -18,15 +18,15 @@ from openai import OpenAI
 # Load .env file for local development
 load_dotenv()
 
-BASE_URL = os.environ.get("API_BASE_URL", "https://router.huggingface.co/v1")
-MODEL    = os.environ.get("MODEL_NAME",   "meta-llama/Llama-3.3-70B-Instruct")
-HF_TOKEN = os.environ.get("HF_TOKEN",    "")
-ENV_URL  = os.environ.get("ENV_URL",      "http://localhost:7860")
+API_BASE_URL = os.getenv("API_BASE_URL", "https://router.huggingface.co/v1")
+MODEL_NAME    = os.getenv("MODEL_NAME",   "meta-llama/Llama-3.3-70B-Instruct")
+HF_TOKEN = os.getenv("HF_TOKEN")
+ENV_URL  = os.getenv("ENV_URL",      "http://localhost:7860")
 
 MAX_EPISODE_SECONDS = 300   # 5 min per task, 15 min total — stays under 20 min limit
 TASKS = ["easy", "medium", "hard"]
 
-client = OpenAI(base_url=BASE_URL, api_key=HF_TOKEN)
+client = OpenAI(base_url=API_BASE_URL, api_key=HF_TOKEN)
 
 
 SYSTEM_PROMPT = """You are an expert Site Reliability Engineer responding to a production incident.
@@ -74,7 +74,7 @@ def call_llm(observation: dict) -> dict:
             {"role": "user", "content": f"Current incident observation:\n{json.dumps(observation, indent=2)}\n\nWhat is your next action?"}
         ]
         response = client.chat.completions.create(
-            model=MODEL,
+            model=MODEL_NAME,
             messages=messages,
             max_tokens=200,
             temperature=0.1,
@@ -135,7 +135,7 @@ def run_episode(difficulty: str) -> dict:
     print(f"  Scenario: {observation['scenario_id']}")
     print(f"  Alerts: {len(observation['alerts'])}")
 
-    log_start(task=difficulty, env="IncidentMind", model=MODEL)
+    log_start(task=difficulty, env="IncidentMind", model=MODEL_NAME)
 
     step = 0
     done = False
@@ -200,7 +200,7 @@ def main():
     print("\n" + "="*55)
     print("  IncidentMind — Baseline Inference Run")
     print("="*55)
-    print(f"  Model:   {MODEL}")
+    print(f"  Model:   {MODEL_NAME}")
     print(f"  Env:     {ENV_URL}")
     print(f"  Timeout: {MAX_EPISODE_SECONDS}s per task")
 
@@ -224,7 +224,7 @@ def main():
 
     # Save scores for reproducibility
     output = {
-        "model": MODEL,
+        "model": MODEL_NAME,
         "scores": {d: r["score"] for d, r in results.items()},
         "all_passed": all(r["passed"] for r in results.values()),
         "total_elapsed_seconds": round(total_elapsed, 1),
