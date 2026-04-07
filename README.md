@@ -19,7 +19,7 @@ tags:
 
 ### Ambiguity-Aware Production Incident Response RL Environment
 
-**Meta PyTorch OpenEnv Hackathon 2026**
+**Meta PyTorch OpenEnv Hackathon 2026 — Hariharan M, Asmitha M & Priyadharshini S**
 
 [![HuggingFace Space](https://img.shields.io/badge/🤗%20HuggingFace-Live%20Demo-blue)](https://huggingface.co/spaces/hariharan1828/incidentmind)
 [![OpenEnv](https://img.shields.io/badge/OpenEnv-Compliant-brightgreen)]()
@@ -54,19 +54,17 @@ IncidentMind provides a simulation where agents learn to:
 
 ---
 
-## Research Foundation: OPTI-FAB
+## Architecture of Confidence-Gating
 
-IncidentMind is built on the confidence-gating architecture of **OPTI-FAB** (Optimized Process Technology for Intelligent Fabrication and Anomaly-based Breakdowns) — our semiconductor wafer inspection system that achieved a **63.9% reduction in classification latency** by learning *when partial evidence is sufficient to act*.
+IncidentMind is built on a confidence-gating architecture designed to answer a critical operational problem: *when is partial evidence sufficient to act?* 
 
-| OPTI-FAB Concept | IncidentMind Mapping |
+| Architectural Concept | IncidentMind Mapping |
 |:--|:--|
 | Confidence gate ≥ 0.85 | `confidence_signal` — rises as the agent gathers relevant evidence |
 | Entropy threshold ≤ 0.35 | `clarification_budget` — bounded question-asking under uncertainty |
-| Early exit at 50–68% of pipeline | Efficiency bonus — resolve earlier with fewer steps for higher reward |
-| False reject = wasted manufacturing cost | Wrong fix = blast-radius cascade across dependent services |
-| Circular buffer streaming | Incremental log investigation — agent sees partial data, requests more |
-
-**Same architecture. Same principles. Different domain.**
+| Early exit logic | Efficiency bonus — resolve earlier with fewer steps for higher reward |
+| Irreversible action cost | Wrong fix = blast-radius cascade across dependent services |
+| Iterative evidence collection | Incremental log investigation — agent sees partial data, requests more |
 
 ---
 
@@ -106,9 +104,9 @@ Baseline agent: **Llama-3.3-70B-Instruct** (untrained, zero-shot via HuggingFace
 
 | Difficulty | Score | Threshold | Result |
 |:--|:--:|:--:|:--:|
-| **Easy** | 0.906 | 0.70 | ✅ Pass |
+| **Easy**   | 0.906 | 0.70 | ✅ Pass |
 | **Medium** | 0.887 | 0.60 | ✅ Pass |
-| **Hard** | 0.650 | 0.50 | ✅ Pass |
+| **Hard**   | 0.650 | 0.50 | ✅ Pass |
 
 The baseline demonstrates that IncidentMind is **solvable by capable LLMs** while remaining challenging enough for RL training to produce meaningful improvements. The `possible_actions` list in each observation ensures agents select from valid resolution strings, and `clarification_keys` provides the exact questions they can ask, preventing hallucinated actions.
 
@@ -123,10 +121,10 @@ IncidentMind exposes a standard OpenEnv-compliant REST API.
 | `/` | `GET` | Landing page with environment overview |
 | `/health` | `GET` | Health check — returns `{"status": "ok"}` |
 | `/reset?difficulty={easy\|medium\|hard}` | `POST` | Start a fresh episode; returns initial observation |
-| `/step` | `POST` | Submit an action; returns observation, reward, done, info |
+| `/step`  | `POST` | Submit an action; returns observation, reward, done, info |
 | `/state` | `GET` | Full current episode state as JSON |
 | `/tasks` | `GET` | Enumerate all 9 tasks with metadata and thresholds |
-| `/docs` | `GET` | Interactive Swagger/OpenAPI documentation |
+| `/docs`  | `GET` | Interactive Swagger/OpenAPI documentation |
 
 ### Action Space
 
@@ -214,7 +212,7 @@ print(result["done"])             # True — episode complete
 
 ### Confidence Signal
 
-The `confidence_signal` (0.0–1.0) mirrors OPTI-FAB's confidence gate:
+The `confidence_signal` (0.0–1.0) mirrors our baseline confidence gate constraint:
 
 ```
 confidence = 0.5 × (services_investigated / total_services)
@@ -364,8 +362,8 @@ incidentmind/
 │                     RL Agent / Inference Client                   │
 │                                                                  │
 │  ┌─────────────┐    ┌──────────────┐    ┌──────────────────┐   │
-│  │ Observation  │───▶│     LLM      │───▶│   Action         │   │
-│  │ Parser       │    │ (Llama-3.3)  │    │   Formatter      │   │
+│  │ Observation │───▶│     LLM      │───▶│   Action        │   │
+│  │ Parser      │    │ (Llama-3.3)  │    │   Formatter      │   │
 │  └─────────────┘    └──────────────┘    └──────────────────┘   │
 └──────────────────────────────────────────────────────────────────┘
 ```
@@ -379,7 +377,6 @@ incidentmind/
 | GPT-5 false positive rate in incident triage | 82–97% | OpenSec, 2026 |
 | Agent success rate drop under ambiguity | 90% → 40% | OpenSec production study |
 | Lowest-scoring capability on Gaia2 | Ambiguity Resolution | Meta, 2025 |
-| OPTI-FAB latency reduction | 63.9% | Our benchmark (RTX 4050) |
 | IncidentMind scenario diversity | 9 scenarios × 3 difficulty tiers | This project |
 
 ### Why This Environment Matters
@@ -410,6 +407,8 @@ This project is submitted as part of the **Meta PyTorch OpenEnv Hackathon 2026**
 
 <div align="center">
 
-*IncidentMind v1.1.0 · Powered by OPTI-FAB confidence-gating architecture*
+*IncidentMind v1.1.0 · Built with a confidence-gating architecture for ambiguity resolution*
+
+**Hariharan M, Asmitha M & Priyadharshini S**
 
 </div>
