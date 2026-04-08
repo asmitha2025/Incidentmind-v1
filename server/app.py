@@ -16,7 +16,7 @@ from fastapi.responses import HTMLResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
-from graders import grade_episode
+from .graders import grade_episode
 
 # ─── Load Scenarios ───────────────────────────────────────────────────────────
 

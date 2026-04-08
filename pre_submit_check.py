@@ -126,9 +126,9 @@ check("GET /tasks returns 3+ tasks", c5)
 
 # CHECK 6 — graders return 0.0–1.0
 def c6():
-    from graders import grade_episode
+    from server.graders import grade_episode
     import json
-    with open("scenarios.json") as f:
+    with open("server/scenarios.json") as f:
         scenarios = json.load(f)
 
     all_ok = True
