@@ -55,7 +55,13 @@ def grade_easy(state: Dict[str, Any], scenario: Dict[str, Any]) -> float:
     efficiency = steps_remaining / max_steps
     score += round(efficiency * 0.15, 3)
 
-    return min(round(score, 3), 1.0)
+    # Ensure score is strictly between 0 and 1
+    score = min(round(score, 3), 1.0)
+    if score <= 0.0:
+        score = 0.001
+    elif score >= 1.0:
+        score = 0.999
+    return score
 
 
 def grade_medium(state: Dict[str, Any], scenario: Dict[str, Any]) -> float:
@@ -115,7 +121,13 @@ def grade_medium(state: Dict[str, Any], scenario: Dict[str, Any]) -> float:
     efficiency = steps_remaining / max_steps
     score += round(efficiency * 0.15, 3)
 
-    return min(round(score, 3), 1.0)
+    # Ensure score is strictly between 0 and 1
+    score = min(round(score, 3), 1.0)
+    if score <= 0.0:
+        score = 0.001
+    elif score >= 1.0:
+        score = 0.999
+    return score
 
 
 def grade_hard(state: Dict[str, Any], scenario: Dict[str, Any]) -> float:
@@ -209,5 +221,11 @@ def grade_hard(state: Dict[str, Any], scenario: Dict[str, Any]) -> float:
     efficiency = steps_remaining / max_steps
     score += round(efficiency * 0.10, 3)
 
-    return min(max(round(score, 3), 0.0), 1.0)
+    # Ensure score is strictly between 0 and 1
+    score = min(max(round(score, 3), 0.0), 1.0)
+    if score <= 0.0:
+        score = 0.001
+    elif score >= 1.0:
+        score = 0.999
+    return score
 
