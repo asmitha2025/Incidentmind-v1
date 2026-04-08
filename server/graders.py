@@ -15,7 +15,15 @@ _SCORE_MAX = 0.999
 
 def _clamp(score: float) -> float:
     """Clamp score to strictly (0.0, 1.0). Applied to every return value."""
-    return max(_SCORE_MIN, min(_SCORE_MAX, round(score, 3)))
+    # First, handle the base score with rounding
+    clamped = max(_SCORE_MIN, min(_SCORE_MAX, round(score, 3)))
+    
+    # Secondary check to ensure float precision doesn't leak 0.0 or 1.0
+    if clamped <= 0.0:
+        return _SCORE_MIN
+    if clamped >= 1.0:
+        return _SCORE_MAX
+    return clamped
 
 
 def grade_episode(state: Dict[str, Any], scenario: Dict[str, Any]) -> float:
@@ -23,14 +31,18 @@ def grade_episode(state: Dict[str, Any], scenario: Dict[str, Any]) -> float:
     Master grader — dispatches to difficulty-specific grader.
     Returns float strictly in (0.0, 1.0).
     """
-    difficulty = scenario.get("difficulty", "easy")
-    if difficulty == "easy":
+    # Harden difficulty check against case sensitivity or extra whitespace
+    diff_raw = str(scenario.get("difficulty", "easy")).lower().strip()
+    
+    if diff_raw == "easy":
         return grade_easy(state, scenario)
-    elif difficulty == "medium":
+    elif diff_raw == "medium":
         return grade_medium(state, scenario)
-    elif difficulty == "hard":
+    elif diff_raw == "hard":
         return grade_hard(state, scenario)
-    return _SCORE_MIN  # fallback — never bare 0.0
+        
+    # Fallback for unexpected difficulty strings
+    return _SCORE_MIN
 
 
 def grade_easy(state: Dict[str, Any], scenario: Dict[str, Any]) -> float:
@@ -41,20 +53,18 @@ def grade_easy(state: Dict[str, Any], scenario: Dict[str, Any]) -> float:
     - Resolved correctly: 0.70 base
     - Investigated root cause service: +0.15
     - Efficiency bonus (steps remaining): +0.0 to +0.15
-    - Wrong resolution: _SCORE_MIN
-    - Never resolved: _SCORE_MIN
     """
     if not state.get("resolved", False):
         return _SCORE_MIN
 
-    if state.get("resolution_action") != scenario["correct_action"]:
+    if state.get("resolution_action") != scenario.get("correct_action"):
         return _SCORE_MIN
 
     score = 0.70
 
-    root_cause = scenario["root_cause_service"]
+    root_cause = scenario.get("root_cause_service", "")
     logs_seen = state.get("logs_seen", {})
-    if root_cause in logs_seen:
+    if root_cause and root_cause in logs_seen:
         score += 0.15
 
     max_steps = scenario.get("max_steps", 8)
@@ -71,30 +81,28 @@ def grade_medium(state: Dict[str, Any], scenario: Dict[str, Any]) -> float:
     Medium grader: Cascading failure with red herring.
 
     Scoring:
-    - Resolved correctly (right root cause): 0.65 base
+    - Resolved correctly: 0.65 base
     - Investigated root cause service: +0.10
     - Did NOT investigate red herrings before root cause: +0.10
     - Efficiency bonus: +0.0 to +0.15
-    - Fixed symptom instead of root cause: 0.20 (partial)
-    - Wrong service entirely: _SCORE_MIN
-    - Never resolved: _SCORE_MIN
     """
     if not state.get("resolved", False):
         return _SCORE_MIN
 
     resolution = state.get("resolution_action", "")
-    root_cause = scenario["root_cause_service"]
+    root_cause = scenario.get("root_cause_service", "")
     red_herrings = scenario.get("red_herrings", [])
     logs_seen = state.get("logs_seen", {})
 
-    if resolution != scenario["correct_action"]:
-        if root_cause in logs_seen:
+    if resolution != scenario.get("correct_action"):
+        # Partial credit if they at least found the right service
+        if root_cause and root_cause in logs_seen:
             return _clamp(0.20)
         return _SCORE_MIN
 
     score = 0.65
 
-    if root_cause in logs_seen:
+    if root_cause and root_cause in logs_seen:
         score += 0.10
 
     actions_taken = state.get("actions_taken", [])
@@ -102,9 +110,10 @@ def grade_medium(state: Dict[str, Any], scenario: Dict[str, Any]) -> float:
     red_herring_step = None
     for i, action in enumerate(actions_taken):
         if action.get("action_type") == "investigate":
-            if action.get("target") == root_cause and root_cause_step is None:
+            target = action.get("target")
+            if target == root_cause and root_cause_step is None:
                 root_cause_step = i
-            if action.get("target") in red_herrings and red_herring_step is None:
+            if target in red_herrings and red_herring_step is None:
                 red_herring_step = i
 
     if root_cause_step is not None:
@@ -123,33 +132,32 @@ def grade_medium(state: Dict[str, Any], scenario: Dict[str, Any]) -> float:
 def grade_hard(state: Dict[str, Any], scenario: Dict[str, Any]) -> float:
     """
     Hard grader: Multi-alert chaos with 3 red herrings.
-
-    Designed so naive agents score 0.10-0.30; trained agents score 0.55-0.80.
     """
-    root_cause = scenario["root_cause_service"]
+    root_cause = scenario.get("root_cause_service", "")
     key_services = scenario.get("key_investigation_services", [])
     red_herrings = scenario.get("red_herrings", [])
     logs_seen = state.get("logs_seen", {})
 
     if not state.get("resolved", False):
-        if root_cause in logs_seen and len(key_services) > 0 and key_services[0] in logs_seen:
+        # Graceful partial credit for deep investigation even if unresolved
+        if root_cause and root_cause in logs_seen and len(key_services) > 0 and key_services[0] in logs_seen:
             return _clamp(0.12)
         return _SCORE_MIN
 
     resolution = state.get("resolution_action", "")
-    correct_action = scenario["correct_action"]
+    correct_action = scenario.get("correct_action")
     blast_radius = state.get("blast_radius", 0)
 
     if resolution != correct_action:
-        if root_cause in logs_seen and len(key_services) > 0 and key_services[0] in logs_seen:
+        if root_cause and root_cause in logs_seen and len(key_services) > 0 and key_services[0] in logs_seen:
             return _clamp(0.18)
-        if root_cause in logs_seen:
+        if root_cause and root_cause in logs_seen:
             return _clamp(0.10)
         return _clamp(0.05)
 
     score = 0.50
 
-    if root_cause in logs_seen:
+    if root_cause and root_cause in logs_seen:
         score += 0.10
 
     if len(key_services) >= 1 and key_services[0] in logs_seen:

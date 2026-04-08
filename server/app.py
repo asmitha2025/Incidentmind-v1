@@ -102,6 +102,8 @@ def _compute_confidence_signal(state: Dict, scenario: Dict) -> float:
     """
     Mirrors OPTI-FAB's confidence gate: rises as agent gathers useful evidence.
     0.0 = no evidence, 1.0 = root cause confirmed, no wrong actions.
+    
+    Clamped to strictly (0.001, 0.999) to satisfy platform validators.
     """
     logs_seen = state.get("logs_seen", {})
     services_available = scenario.get("services_available", [])
@@ -109,7 +111,7 @@ def _compute_confidence_signal(state: Dict, scenario: Dict) -> float:
     blast_radius = state.get("blast_radius", 0)
 
     if not services_available:
-        return 0.0
+        return 0.001
 
     # 50% weight: coverage (how many services investigated)
     coverage = len(logs_seen) / len(services_available)
@@ -121,7 +123,12 @@ def _compute_confidence_signal(state: Dict, scenario: Dict) -> float:
 
     # Blast radius degrades confidence
     signal -= blast_radius * 0.15
-    return round(max(0.0, min(1.0, signal)), 3)
+    
+    # Strict clamping for the validator
+    clamped = round(max(0.001, min(0.999, signal)), 3)
+    if clamped <= 0.0: return 0.001
+    if clamped >= 1.0: return 0.999
+    return clamped
 
 
 def _build_observation(state: Dict, scenario: Dict) -> Observation:
