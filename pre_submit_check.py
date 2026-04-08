@@ -124,7 +124,7 @@ def c5():
 
 check("GET /tasks returns 3+ tasks", c5)
 
-# CHECK 6 — graders return 0.0–1.0
+# CHECK 6 — graders return strictly between 0.0 and 1.0
 def c6():
     from server.graders import grade_episode
     import json
@@ -149,14 +149,15 @@ def c6():
             "done": True,
         }
         score = grade_episode(mock_state, scenario)
-        in_range = 0.0 <= score <= 1.0
+        # Meta OpenEnv Requirement: STRICTLY between 0 and 1
+        in_range = 0.0 < score < 1.0 
         if not in_range:
             all_ok = False
         detail_parts.append(f"{scenario['difficulty']}={score:.3f}")
 
     return all_ok, " | ".join(detail_parts)
 
-check("Graders return scores in [0.0, 1.0]", c6)
+check("Graders return scores strictly in (0.0, 1.0)", c6)
 
 # CHECK 7 — environment variables set
 def c7():

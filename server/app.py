@@ -592,14 +592,13 @@ async def step(action: Action):
         info["timeout"] = True
         info["result"] = "Episode timed out — all steps exhausted"
 
-    # ── COMPUTE SCORE & REWARD ───────────────────────────────────────────────
     # OpenEnv Meta Hackathon Rule: Total rewards for the task must be in [0, 1].
     # We satisfy this by:
-    # 1. Setting all intermediate rewards to 0.0
+    # 1. Setting all intermediate rewards to 0.001 (epsilon)
     # 2. Setting the final step reward to the grader's deterministic score
     
     _state["done"] = done
-    step_reward = 0.0
+    step_reward = 0.001 # Tiny epsilon to avoid bare 0.0
     
     if done:
         # Import grader here to avoid circular dependencies
@@ -610,8 +609,8 @@ async def step(action: Action):
         _state["cumulative_reward"] = final_score
         step_reward = final_score
     else:
-        _state["cumulative_reward"] = 0.0
-        step_reward = 0.0
+        _state["cumulative_reward"] = 0.001
+        step_reward = 0.001
 
     # Record action in state
     _state["actions_taken"].append({
