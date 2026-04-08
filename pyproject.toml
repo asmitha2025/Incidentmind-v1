@@ -1,0 +1,42 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "incidentmind"
+version = "1.1.0"
+description = "Ambiguity-Aware Production Incident Response RL Environment"
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+authors = [
+  { name = "Hariharan M", email = "mr.hariharan2020@gmail.com" },
+  { name = "Asmitha M", email = "asmitha7634@gmail.com" },
+  { name = "Priyadharshini S", email = "s.priyadharishini1234@gmail.com" },
+]
+keywords = [
+  "openenv",
+  "reinforcement-learning",
+  "incident-response",
+  "ambiguity-resolution",
+  "site-reliability",
+]
+dependencies = [
+  "fastapi==0.111.0",
+  "uvicorn==0.29.0",
+  "pydantic==2.7.1",
+  "openai==1.30.0",
+  "requests==2.31.0",
+  "python-dotenv==1.0.1",
+]
+
+[project.urls]
+Homepage = "https://huggingface.co/spaces/hariharan1828/incidentmind"
+Repository = "https://huggingface.co/spaces/hariharan1828/incidentmind"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["incidentmind*"]
+
+[tool.setuptools.package-data]
+"*" = ["scenarios.json", "openenv.yaml", "*.md"] 
