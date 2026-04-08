@@ -29,7 +29,7 @@ tasks:
     max_steps: 8
     clarification_budget: 1
     success_threshold: 0.70
-    reward_range: [-10.0, 13.5]
+    reward_range: [0.0, 1.0]
 
   - id: easy_002
     difficulty: easy
@@ -40,7 +40,7 @@ tasks:
     max_steps: 8
     clarification_budget: 1
     success_threshold: 0.70
-    reward_range: [-10.0, 13.5]
+    reward_range: [0.0, 1.0]
 
   - id: easy_003
     difficulty: easy
@@ -51,7 +51,7 @@ tasks:
     max_steps: 8
     clarification_budget: 1
     success_threshold: 0.70
-    reward_range: [-10.0, 13.5]
+    reward_range: [0.0, 1.0]
 
   # ─── Medium (3 scenarios) ───────────────────────────────────────────────────
   - id: medium_001
@@ -63,7 +63,7 @@ tasks:
     max_steps: 12
     clarification_budget: 2
     success_threshold: 0.60
-    reward_range: [-15.0, 14.0]
+    reward_range: [0.0, 1.0]
 
   - id: medium_002
     difficulty: medium
@@ -74,7 +74,7 @@ tasks:
     max_steps: 12
     clarification_budget: 2
     success_threshold: 0.60
-    reward_range: [-15.0, 14.0]
+    reward_range: [0.0, 1.0]
 
   - id: medium_003
     difficulty: medium
@@ -85,7 +85,7 @@ tasks:
     max_steps: 12
     clarification_budget: 2
     success_threshold: 0.60
-    reward_range: [-15.0, 14.0]
+    reward_range: [0.0, 1.0]
 
   # ─── Hard (3 scenarios) ─────────────────────────────────────────────────────
   - id: hard_001
@@ -98,7 +98,7 @@ tasks:
     max_steps: 15
     clarification_budget: 3
     success_threshold: 0.50
-    reward_range: [-20.0, 13.6]
+    reward_range: [0.0, 1.0]
 
   - id: hard_002
     difficulty: hard
@@ -110,7 +110,7 @@ tasks:
     max_steps: 15
     clarification_budget: 3
     success_threshold: 0.50
-    reward_range: [-20.0, 13.6]
+    reward_range: [0.0, 1.0]
 
   - id: hard_003
     difficulty: hard
@@ -122,7 +122,7 @@ tasks:
     max_steps: 15
     clarification_budget: 3
     success_threshold: 0.50
-    reward_range: [-20.0, 13.6]
+    reward_range: [0.0, 1.0]
 
 observation_space:
   scenario_id: string
@@ -180,15 +180,9 @@ action_space:
     description: Hand off to human on-call — ends episode with penalty
 
 reward_signals:
-  correct_resolution: +10.0
-  efficiency_bonus: "+0.5 to +3.5 (scales with steps remaining)"
-  step_penalty: -0.2
-  wrong_resolution: -3.0
-  blast_radius_penalty: -2.0 per affected service
-  redundant_investigation: -0.3
-  clarification_exhausted: -2.0
-  escalation: -2.0
-  timeout: -5.0
+  grader_final_score: 0.0 to 1.0 (deterministic)
+  intermediate_feedback: 0.0 (for compliance)
+  penalties: Implicitly reflected in final grader score
 
 baseline:
   model: meta-llama/Llama-3.3-70B-Instruct

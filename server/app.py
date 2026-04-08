@@ -513,10 +513,8 @@ def reset(difficulty: str = Query("easy", pattern="^(easy|medium|hard)$")):
 
 
 @app.post("/step", response_model=StepResult)
-def step(action: Action):
-    """
-    Agent takes one action. Returns observation + reward + done + info.
-    """
+async def step(action: Action):
+    """Execute a single action in the environment."""
     global _state, _current_scenario
 
     if not _state:
@@ -524,27 +522,21 @@ def step(action: Action):
     if _state["done"]:
         raise HTTPException(status_code=400, detail="Episode already done. Call /reset to start a new one.")
 
-    reward = 0.0
     info: Dict[str, Any] = {"action": action.model_dump()}
     done = False
-
-    # Increment step and apply step penalty
+    
+    # Track progress but rewards remain 0.0 until the end for validator compliance
     _state["step"] += 1
-    reward -= 0.2
-
     action_type = action.action_type
 
     # ── INVESTIGATE ──────────────────────────────────────────────────────────
     if action_type == "investigate":
         target = action.target
         if not target:
-            reward -= 0.5
             info["error"] = "investigate requires a target service"
         elif target not in _current_scenario["services_available"]:
-            reward -= 0.5
             info["error"] = f"Service '{target}' does not exist"
         elif target in _state["logs_seen"]:
-            reward -= 0.3
             info["result"] = f"Already investigated {target} — redundant investigation"
         else:
             logs = _current_scenario["logs"].get(target, ["[INFO] No logs available for this service."])
@@ -555,7 +547,6 @@ def step(action: Action):
     # ── ASK CLARIFICATION ────────────────────────────────────────────────────
     elif action_type == "ask_clarification":
         if _state["clarifications_remaining"] <= 0:
-            reward -= 2.0
             info["error"] = "Clarification budget exhausted"
         else:
             question_key = action.target
@@ -564,7 +555,6 @@ def step(action: Action):
                 "No information available for that question."
             )
             _state["clarifications_remaining"] -= 1
-            reward -= 0.5
             info["result"] = answer
             info["clarifications_remaining"] = _state["clarifications_remaining"]
 
@@ -572,72 +562,71 @@ def step(action: Action):
     elif action_type == "resolve":
         resolution = action.resolution_action
         if not resolution:
-            reward -= 0.5
             info["error"] = "resolve requires a resolution_action"
         else:
             _state["resolution_action"] = resolution
             _state["resolved"] = True
             done = True
-
             if resolution == _current_scenario["correct_action"]:
-                # Correct fix
-                steps_remaining = max(0, _state["max_steps"] - _state["step"])
-                efficiency_bonus = round((steps_remaining / _state["max_steps"]) * 3.5, 2)
-                reward += 10.0 + efficiency_bonus
                 info["result"] = "CORRECT — incident resolved successfully"
-                info["efficiency_bonus"] = efficiency_bonus
             else:
-                # Wrong fix — blast radius
-                reward -= 3.0
                 _state["blast_radius"] += 1
-                reward -= 2.0 * _state["blast_radius"]
                 info["result"] = "WRONG FIX — incorrect root cause targeted"
                 info["blast_radius"] = _state["blast_radius"]
 
     # ── ROLLBACK ────────────────────────────────────────────────────────────
     elif action_type == "rollback":
-        reward -= 1.0
         info["result"] = f"Rolled back service: {action.target}"
 
     # ── ESCALATE ────────────────────────────────────────────────────────────
     elif action_type == "escalate":
-        reward -= 2.0
         done = True
         info["result"] = "Escalated to human on-call — episode ended"
 
     else:
-        reward -= 0.5
         info["error"] = f"Unknown action_type: {action_type}"
 
     # ── TIMEOUT CHECK ────────────────────────────────────────────────────────
     if _state["step"] >= _state["max_steps"] and not done:
-        reward -= 5.0
         done = True
         info["timeout"] = True
         info["result"] = "Episode timed out — all steps exhausted"
 
-    # ── RECORD & FINALIZE ────────────────────────────────────────────────────
+    # ── COMPUTE SCORE & REWARD ───────────────────────────────────────────────
+    # OpenEnv Meta Hackathon Rule: Total rewards for the task must be in [0, 1].
+    # We satisfy this by:
+    # 1. Setting all intermediate rewards to 0.0
+    # 2. Setting the final step reward to the grader's deterministic score
+    
+    _state["done"] = done
+    step_reward = 0.0
+    
+    if done:
+        # Import grader here to avoid circular dependencies
+        from server.graders import grade_episode
+        final_score = grade_episode(_state, _current_scenario)
+        
+        info["final_score"] = final_score
+        _state["cumulative_reward"] = final_score
+        step_reward = final_score
+    else:
+        _state["cumulative_reward"] = 0.0
+        step_reward = 0.0
+
+    # Record action in state
     _state["actions_taken"].append({
         "step": _state["step"],
         "action_type": action_type,
         "target": action.target,
         "resolution_action": action.resolution_action,
-        "reward": round(reward, 3),
+        "reward": step_reward
     })
-    _state["cumulative_reward"] = round(_state["cumulative_reward"] + reward, 3)
-    _state["done"] = done
-
-    # Compute final grade if episode is done
-    if done:
-        final_score = grade_episode(_state, _current_scenario)
-        info["final_score"] = final_score
-        info["cumulative_reward"] = _state["cumulative_reward"]
 
     observation = _build_observation(_state, _current_scenario)
 
     return StepResult(
         observation=observation,
-        reward=round(reward, 3),
+        reward=step_reward,
         done=done,
         info=info,
     )

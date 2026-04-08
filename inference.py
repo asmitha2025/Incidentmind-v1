@@ -110,13 +110,21 @@ def call_llm(observation: dict) -> dict:
 
 
 def log_start(task: str, env: str, model: str):
-    print(f"[START] {json.dumps({'task': task, 'env': env, 'model': model})}", flush=True)
+    # Format: [START] task=<task_name> env=<benchmark> model=<model_name>
+    print(f"[START] task={task} env={env} model={model}", flush=True)
 
 def log_step(step: int, action: str, reward: float, done: bool, error: str = None):
-    print(f"[STEP] {json.dumps({'step': step, 'action': action, 'reward': round(reward, 2), 'done': done, 'error': error})}", flush=True)
+    # Format: [STEP] step=<n> action=<action_str> reward=<0.00> done=<true|false> error=<msg|null>
+    reward_str = f"{reward:.2f}"
+    done_str = "true" if done else "false"
+    error_str = "null" if error is None else error
+    print(f"[STEP] step={step} action={action} reward={reward_str} done={done_str} error={error_str}", flush=True)
 
 def log_end(success: bool, steps: int, score: float, rewards: list):
-    print(f"[END] {json.dumps({'success': success, 'steps': steps, 'score': round(score, 2), 'rewards': [round(r, 2) for r in rewards]})}", flush=True)
+    # Format: [END] success=<true|false> steps=<n> rewards=<r1,r2,...,rn>
+    success_str = "true" if success else "false"
+    rewards_str = ",".join([f"{r:.2f}" for r in rewards])
+    print(f"[END] success={success_str} steps={steps} rewards={rewards_str}", flush=True)
 
 
 def run_episode(difficulty: str) -> dict:
