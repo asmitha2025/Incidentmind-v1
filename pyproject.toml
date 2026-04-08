@@ -32,7 +32,8 @@ dependencies = [
 ]
 
 [project.scripts]
-incidentmind = "server.app:app"
+incidentmind = "server.app:main"
+serve = "server.app:main"
 
 [project.urls]
 Homepage = "https://huggingface.co/spaces/hariharan1828/incidentmind"

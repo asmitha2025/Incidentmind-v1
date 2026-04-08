@@ -604,3 +604,18 @@ def get_state():
         "root_cause": _current_scenario.get("root_cause_service"),
         "possible_actions": _current_scenario.get("possible_actions", []),
     }
+
+
+def main():
+    """Entry point for openenv multi-mode deployment."""
+    import uvicorn
+    uvicorn.run(
+        "server.app:app",
+        host="0.0.0.0",
+        port=int(os.getenv("PORT", 7860)),
+        reload=False,
+    )
+
+
+if __name__ == "__main__":
+    main()
