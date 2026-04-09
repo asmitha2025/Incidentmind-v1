@@ -67,11 +67,11 @@ Respond ONLY with valid JSON. No explanation, no markdown, no extra text."""
 
 
 def call_llm(observation: dict) -> dict:
-    \"\"\"Call LLM and parse action JSON. Returns a safe default on failure.\"\"\"
+    """Invoke LLM and parse action JSON. Returns a safe default on failure."""
     try:
         messages = [
             {"role": "system", "content": SYSTEM_PROMPT},
-            {"role": "user", "content": f"Current incident observation:\\n{json.dumps(observation, indent=2)}\\n\\nWhat is your next action?"}
+            {"role": "user", "content": f"Current incident observation:\n{json.dumps(observation, indent=2)}\n\nWhat is your next action?"}
         ]
         response = client.chat.completions.create(
             model=MODEL_NAME,
@@ -125,8 +125,8 @@ def log_end(success: bool, steps: int, score: float, rewards: list):
 
 
 def run_episode(difficulty: str) -> dict:
-    \"\"\"Run one complete episode for the given difficulty. Returns result dict.\"\"\"
-    print(f"\\n{'='*55}")
+    """Run one complete episode for the given difficulty. Returns result dict."""
+    print(f"\n{'='*55}")
     print(f"  TASK: {difficulty.upper()}")
     print(f"{'='*55}")
 
@@ -185,7 +185,7 @@ def run_episode(difficulty: str) -> dict:
     success = final_score >= _get_threshold(difficulty)
     log_end(success=success, steps=step, score=final_score, rewards=rewards)
     
-    print(f"\\n  RESULT: score={final_score:.3f} | steps={step} | time={elapsed_total:.1f}s")
+    print(f"\n  RESULT: score={final_score:.3f} | steps={step} | time={elapsed_total:.1f}s")
     print(f"  {'[PASS]' if success else '[FAIL] BELOW THRESHOLD'}")
 
     return {
@@ -204,7 +204,7 @@ def _get_threshold(difficulty: str) -> float:
 
 
 def main():
-    print("\\n" + "="*55)
+    print("\n" + "="*55)
     print("  IncidentMind — Baseline Inference Run")
     print("="*55)
     print(f"  Model:   {MODEL_NAME}")
@@ -220,13 +220,13 @@ def main():
 
     total_elapsed = time.time() - total_start
 
-    print("\\n" + "="*55)
+    print("\n" + "="*55)
     print("  FINAL SCORES")
     print("="*55)
     for difficulty, result in results.items():
         status = "[PASS]" if result["passed"] else "[FAIL]"
         print(f"  {difficulty.upper():8s} | score={result['score']:.3f} | steps={result['steps']:2d} | {status}")
-    print(f"\\n  Total time: {total_elapsed:.1f}s / 1200s max")
+    print(f"\n  Total time: {total_elapsed:.1f}s / 1200s max")
     print("="*55)
 
     # Save scores for reproducibility
@@ -239,12 +239,12 @@ def main():
     }
     with open("baseline_scores.json", "w") as f:
         json.dump(output, f, indent=2)
-    print("\\n  Saved -> baseline_scores.json")
+    print("\n  Saved -> baseline_scores.json")
 
     if not output["all_passed"]:
-        print("\\n  [!] Not all tasks passed. Review scores above.")
+        print("\n  [!] Not all tasks passed. Review scores above.")
     else:
-        print("\\n  [SUCCESS] All tasks passed. Ready to submit.")
+        print("\n  [SUCCESS] All tasks passed. Ready to submit.")
 
 
 if __name__ == "__main__":
