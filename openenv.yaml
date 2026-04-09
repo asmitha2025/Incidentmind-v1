@@ -29,7 +29,7 @@ tasks:
     max_steps: 8
     clarification_budget: 1
     success_threshold: 0.70
-    reward_range: [0.001, 0.999]
+    reward_range: [0.01, 0.99]
 
   - id: easy_002
     difficulty: easy
@@ -40,7 +40,7 @@ tasks:
     max_steps: 8
     clarification_budget: 1
     success_threshold: 0.70
-    reward_range: [0.001, 0.999]
+    reward_range: [0.01, 0.99]
 
   - id: easy_003
     difficulty: easy
@@ -51,7 +51,7 @@ tasks:
     max_steps: 8
     clarification_budget: 1
     success_threshold: 0.70
-    reward_range: [0.001, 0.999]
+    reward_range: [0.01, 0.99]
 
   # ─── Medium (3 scenarios) ───────────────────────────────────────────────────
   - id: medium_001
@@ -63,7 +63,7 @@ tasks:
     max_steps: 12
     clarification_budget: 2
     success_threshold: 0.60
-    reward_range: [0.001, 0.999]
+    reward_range: [0.01, 0.99]
 
   - id: medium_002
     difficulty: medium
@@ -74,7 +74,7 @@ tasks:
     max_steps: 12
     clarification_budget: 2
     success_threshold: 0.60
-    reward_range: [0.001, 0.999]
+    reward_range: [0.01, 0.99]
 
   - id: medium_003
     difficulty: medium
@@ -85,7 +85,7 @@ tasks:
     max_steps: 12
     clarification_budget: 2
     success_threshold: 0.60
-    reward_range: [0.001, 0.999]
+    reward_range: [0.01, 0.99]
 
   # ─── Hard (3 scenarios) ─────────────────────────────────────────────────────
   - id: hard_001
@@ -98,7 +98,7 @@ tasks:
     max_steps: 15
     clarification_budget: 3
     success_threshold: 0.50
-    reward_range: [0.001, 0.999]
+    reward_range: [0.01, 0.99]
 
   - id: hard_002
     difficulty: hard
@@ -110,7 +110,7 @@ tasks:
     max_steps: 15
     clarification_budget: 3
     success_threshold: 0.50
-    reward_range: [0.001, 0.999]
+    reward_range: [0.01, 0.99]
 
   - id: hard_003
     difficulty: hard
@@ -122,7 +122,7 @@ tasks:
     max_steps: 15
     clarification_budget: 3
     success_threshold: 0.50
-    reward_range: [0.001, 0.999]
+    reward_range: [0.01, 0.99]
 
 observation_space:
   scenario_id: string

@@ -103,7 +103,7 @@ def _compute_confidence_signal(state: Dict, scenario: Dict) -> float:
     Mirrors OPTI-FAB's confidence gate: rises as agent gathers useful evidence.
     0.0 = no evidence, 1.0 = root cause confirmed, no wrong actions.
     
-    Clamped to strictly (0.001, 0.999) to satisfy platform validators.
+    Clamped to strictly (0.01, 0.99) to satisfy platform validators.
     """
     logs_seen = state.get("logs_seen", {})
     services_available = scenario.get("services_available", [])
@@ -111,13 +111,14 @@ def _compute_confidence_signal(state: Dict, scenario: Dict) -> float:
     blast_radius = state.get("blast_radius", 0)
 
     if not services_available:
-        return 0.001
+        return 0.01
 
     # 50% weight: coverage (how many services investigated)
     coverage = len(logs_seen) / len(services_available)
 
     # 50% weight: whether root cause has been investigated
-    root_investigated = 1.0 if root_cause in logs_seen else 0.0
+    # Use conservative 0.99/0.01 instead of literal 1.0/0.0
+    root_investigated = 0.99 if root_cause in logs_seen else 0.01
 
     signal = (0.5 * coverage) + (0.5 * root_investigated)
 
@@ -125,9 +126,9 @@ def _compute_confidence_signal(state: Dict, scenario: Dict) -> float:
     signal -= blast_radius * 0.15
     
     # Strict clamping for the validator
-    clamped = round(max(0.001, min(0.999, signal)), 3)
-    if clamped <= 0.0: return 0.001
-    if clamped >= 1.0: return 0.999
+    clamped = round(max(0.01, min(0.99, signal)), 2)
+    if clamped <= 0.0: return 0.01
+    if clamped >= 1.0: return 0.99
     return clamped
 
 
@@ -163,7 +164,7 @@ def _initial_state(scenario: Dict) -> Dict:
         "blast_radius": 0,
         "resolved": False,
         "resolution_action": None,
-        "cumulative_reward": 0.001,
+        "cumulative_reward": 0.01,
         "done": False,
     }
 
@@ -598,19 +599,19 @@ async def step(action: Action):
     # 2. Setting the final step reward to the grader's deterministic score
     
     _state["done"] = done
-    step_reward = 0.001  # Safe epsilon — never 0.0, safe at any rounding precision
+    step_reward = 0.01  # Safe epsilon — never 0.0, safe at any rounding precision
 
     if done:
         from server.graders import grade_episode
         final_score = grade_episode(_state, _current_scenario)
         # Hard clamp — belt-and-suspenders
-        final_score = max(0.001, min(0.999, float(final_score)))
+        final_score = max(0.01, min(0.99, float(final_score)))
         info["final_score"] = final_score
         _state["cumulative_reward"] = final_score
         step_reward = final_score
     else:
-        _state["cumulative_reward"] = 0.001
-        step_reward = 0.001
+        _state["cumulative_reward"] = 0.01
+        step_reward = 0.01
 
     # Record action in state
     _state["actions_taken"].append({

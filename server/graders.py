@@ -9,14 +9,15 @@ All returned scores are strictly within (0.0, 1.0) — never exactly 0.0 or 1.0.
 from typing import Dict, Any
 
 # Strict bounds — validator requires (0, 1) exclusive
-_SCORE_MIN = 0.001
-_SCORE_MAX = 0.999
+# We use 0.01/0.99 to be extremely safe against rounding/precision issues.
+_SCORE_MIN = 0.01
+_SCORE_MAX = 0.99
 
 
 def _clamp(score: float) -> float:
-    """Clamp score to strictly (0.0, 1.0). Applied to every return value."""
-    # First, handle the base score with rounding
-    clamped = max(_SCORE_MIN, min(_SCORE_MAX, round(score, 3)))
+    """Clamp score to strictly (0.01, 0.99). Applied to every return value."""
+    # First, handle the base score with rounding to 2 decimal places
+    clamped = max(_SCORE_MIN, min(_SCORE_MAX, round(score, 2)))
     
     # Secondary check to ensure float precision doesn't leak 0.0 or 1.0
     if clamped <= 0.0:
