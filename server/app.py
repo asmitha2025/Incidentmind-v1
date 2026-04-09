@@ -163,7 +163,7 @@ def _initial_state(scenario: Dict) -> Dict:
         "blast_radius": 0,
         "resolved": False,
         "resolution_action": None,
-        "cumulative_reward": 0.0,
+        "cumulative_reward": 0.01,
         "done": False,
     }
 
@@ -598,7 +598,7 @@ async def step(action: Action):
     # 2. Setting the final step reward to the grader's deterministic score
     
     _state["done"] = done
-    step_reward = 0.001 # Tiny epsilon to avoid bare 0.0
+    step_reward = 0.01  # Epsilon above :.2f rounding threshold
     
     if done:
         # Import grader here to avoid circular dependencies
@@ -609,8 +609,8 @@ async def step(action: Action):
         _state["cumulative_reward"] = final_score
         step_reward = final_score
     else:
-        _state["cumulative_reward"] = 0.001
-        step_reward = 0.001
+        _state["cumulative_reward"] = 0.01
+        step_reward = 0.01
 
     # Record action in state
     _state["actions_taken"].append({

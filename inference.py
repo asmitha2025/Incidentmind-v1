@@ -115,7 +115,7 @@ def log_start(task: str, env: str, model: str):
 
 def log_step(step: int, action: str, reward: float, done: bool, error: str = None):
     # Format: [STEP] step=<n> action=<action_str> reward=<0.00> done=<true|false> error=<msg|null>
-    reward_str = f"{reward:.2f}"
+    reward_str = f"{reward:.4f}"
     done_str = "true" if done else "false"
     error_str = "null" if error is None else error
     print(f"[STEP] step={step} action={action} reward={reward_str} done={done_str} error={error_str}", flush=True)
@@ -123,7 +123,7 @@ def log_step(step: int, action: str, reward: float, done: bool, error: str = Non
 def log_end(success: bool, steps: int, score: float, rewards: list):
     # Format: [END] success=<true|false> steps=<n> rewards=<r1,r2,...,rn>
     success_str = "true" if success else "false"
-    rewards_str = ",".join([f"{r:.2f}" for r in rewards])
+    rewards_str = ",".join([f"{r:.4f}" for r in rewards])
     print(f"[END] success={success_str} steps={steps} rewards={rewards_str}", flush=True)
 
 
@@ -147,7 +147,7 @@ def run_episode(difficulty: str) -> dict:
 
     step = 0
     done = False
-    final_score = 0.0
+    final_score = 0.001
     final_info = {}
     rewards = []
 
@@ -179,7 +179,7 @@ def run_episode(difficulty: str) -> dict:
         print(f"           reward={reward:+.2f} | confidence={observation['confidence_signal']:.2f} | blast_radius={observation['blast_radius']}")
 
         if done:
-            final_score = final_info.get("final_score", 0.0)
+            final_score = final_info.get("final_score", 0.001)
 
     elapsed_total = time.time() - episode_start
     
