@@ -163,7 +163,7 @@ def _initial_state(scenario: Dict) -> Dict:
         "blast_radius": 0,
         "resolved": False,
         "resolution_action": None,
-        "cumulative_reward": 0.01,
+        "cumulative_reward": 0.001,
         "done": False,
     }
 
@@ -173,7 +173,7 @@ def _initial_state(scenario: Dict) -> Dict:
 @app.get("/", response_class=HTMLResponse)
 def root():
     """Landing page for the IncidentMind environment."""
-    return \"\"\"
+    return """
     <!DOCTYPE html>
     <html lang="en">
     <head>
@@ -469,7 +469,7 @@ def root():
         </div>
     </body>
     </html>
-    \"\"\"
+    """
 
 
 @app.get("/health")
@@ -479,7 +479,7 @@ def health():
 
 @app.get("/tasks")
 def list_tasks():
-    \"\"\"Enumerate all tasks with metadata for the OpenEnv validator.\"\"\"
+    """Enumerate all tasks with metadata for the OpenEnv validator."""
     tasks = []
     for scenario_id, scenario in ALL_SCENARIOS.items():
         tasks.append(
@@ -496,10 +496,10 @@ def list_tasks():
 
 @app.post("/reset", response_model=Observation)
 def reset(difficulty: str = Query("easy", pattern="^(easy|medium|hard)$")):
-    \"\"\"
+    """
     Start a fresh episode for the given difficulty.
     Returns the initial observation.
-    \"\"\"
+    """
     global _state, _current_scenario
 
     scenarios = SCENARIOS_BY_DIFFICULTY.get(difficulty, [])
@@ -514,7 +514,7 @@ def reset(difficulty: str = Query("easy", pattern="^(easy|medium|hard)$")):
 
 @app.post("/step", response_model=StepResult)
 async def step(action: Action):
-    \"\"\"Execute a single action in the environment.\"\"\"
+    """Execute a single action in the environment."""
     global _state, _current_scenario
 
     if not _state:
@@ -598,7 +598,7 @@ async def step(action: Action):
     # 2. Setting the final step reward to the grader's deterministic score
     
     _state["done"] = done
-    step_reward = 0.01  # Safe epsilon — never 0.0, safe at any rounding precision
+    step_reward = 0.001  # Safe epsilon — never 0.0, safe at any rounding precision
 
     if done:
         from server.graders import grade_episode
@@ -609,8 +609,8 @@ async def step(action: Action):
         _state["cumulative_reward"] = final_score
         step_reward = final_score
     else:
-        _state["cumulative_reward"] = 0.01
-        step_reward = 0.01
+        _state["cumulative_reward"] = 0.001
+        step_reward = 0.001
 
     # Record action in state
     _state["actions_taken"].append({
@@ -633,7 +633,7 @@ async def step(action: Action):
 
 @app.get("/state")
 def get_state():
-    \"\"\"Returns full current episode state as JSON.\"\"\"
+    """Returns full current episode state as JSON."""
     if not _state:
         return {"status": "no_active_episode"}
     return {
@@ -646,7 +646,7 @@ def get_state():
 
 
 def main():
-    \"\"\"Entry point for openenv multi-mode deployment.\"\"\"
+    """Entry point for openenv multi-mode deployment."""
     import uvicorn
     uvicorn.run(
         "server.app:app",

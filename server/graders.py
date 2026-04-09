@@ -14,7 +14,7 @@ _SCORE_MAX = 0.999
 
 
 def _clamp(score: float) -> float:
-    \"\"\"Clamp score to strictly (0.0, 1.0). Applied to every return value.\"\"\"
+    """Clamp score to strictly (0.0, 1.0). Applied to every return value."""
     # First, handle the base score with rounding
     clamped = max(_SCORE_MIN, min(_SCORE_MAX, round(score, 3)))
     
@@ -27,10 +27,10 @@ def _clamp(score: float) -> float:
 
 
 def grade_episode(state: Dict[str, Any], scenario: Dict[str, Any]) -> float:
-    \"\"\"
+    """
     Master grader — dispatches to difficulty-specific grader.
     Returns float strictly in (0.0, 1.0).
-    \"\"\"
+    """
     # Harden difficulty check against case sensitivity or extra whitespace
     diff_raw = str(scenario.get("difficulty", "easy")).lower().strip()
     
@@ -46,14 +46,14 @@ def grade_episode(state: Dict[str, Any], scenario: Dict[str, Any]) -> float:
 
 
 def grade_easy(state: Dict[str, Any], scenario: Dict[str, Any]) -> float:
-    \"\"\"
+    """
     Easy grader: Single root cause resolution.
 
     Scoring:
     - Resolved correctly: 0.70 base
     - Investigated root cause service: +0.15
     - Efficiency bonus (steps remaining): +0.0 to +0.15
-    \"\"\"
+    """
     if not state.get("resolved", False):
         return _SCORE_MIN
 
@@ -77,7 +77,7 @@ def grade_easy(state: Dict[str, Any], scenario: Dict[str, Any]) -> float:
 
 
 def grade_medium(state: Dict[str, Any], scenario: Dict[str, Any]) -> float:
-    \"\"\"
+    """
     Medium grader: Cascading failure with red herring.
 
     Scoring:
@@ -85,7 +85,7 @@ def grade_medium(state: Dict[str, Any], scenario: Dict[str, Any]) -> float:
     - Investigated root cause service: +0.10
     - Did NOT investigate red herrings before root cause: +0.10
     - Efficiency bonus: +0.0 to +0.15
-    \"\"\"
+    """
     if not state.get("resolved", False):
         return _SCORE_MIN
 
@@ -130,9 +130,9 @@ def grade_medium(state: Dict[str, Any], scenario: Dict[str, Any]) -> float:
 
 
 def grade_hard(state: Dict[str, Any], scenario: Dict[str, Any]) -> float:
-    \"\"\"
+    """
     Hard grader: Multi-alert chaos with 3 red herrings.
-    \"\"\"
+    """
     root_cause = scenario.get("root_cause_service", "")
     key_services = scenario.get("key_investigation_services", [])
     red_herrings = scenario.get("red_herrings", [])
