@@ -25,9 +25,9 @@ args = parser.parse_args()
 
 BASE = args.url.rstrip("/")
 
-PASS = "✅"
-FAIL = "❌"
-WARN = "⚠️ "
+PASS = "[PASS]"
+FAIL = "[FAIL]"
+WARN = "[WARN]"
 
 results = []
 
