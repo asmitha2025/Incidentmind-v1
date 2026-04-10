@@ -11,7 +11,7 @@ from typing import Dict, Any
 # Strict bounds — validator requires (0, 1) exclusive
 # We use 0.01/0.99 to be extremely safe against rounding/precision issues.
 _SCORE_MIN = 0.01
-_SCORE_MAX = 0.98
+_SCORE_MAX = 0.99
 
 
 def _clamp(score: float) -> float:

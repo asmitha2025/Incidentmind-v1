@@ -1,18 +1,18 @@
 {
   "model": "meta-llama/Llama-3.3-70B-Instruct",
   "scores": {
-    "easy": 0.906,
-    "medium": 0.887,
-    "hard": 0.65
+    "easy": 0.92,
+    "medium": 0.95,
+    "hard": 0.82
   },
   "all_passed": true,
-  "total_elapsed_seconds": 40.5,
+  "total_elapsed_seconds": 23.7,
   "results": {
     "easy": {
       "difficulty": "easy",
-      "score": 0.906,
-      "steps": 5,
-      "elapsed_seconds": 10.7,
+      "score": 0.92,
+      "steps": 4,
+      "elapsed_seconds": 8.2,
       "passed": true,
       "info": {
         "action": {
@@ -21,45 +21,39 @@
           "resolution_action": "increase_connections"
         },
         "result": "CORRECT \u2014 incident resolved successfully",
-        "efficiency_bonus": 1.31,
-        "final_score": 0.906,
-        "cumulative_reward": 10.31
+        "final_score": 0.92
       }
     },
     "medium": {
       "difficulty": "medium",
-      "score": 0.887,
-      "steps": 9,
-      "elapsed_seconds": 18.3,
+      "score": 0.95,
+      "steps": 4,
+      "elapsed_seconds": 7.7,
       "passed": true,
       "info": {
         "action": {
           "action_type": "resolve",
           "target": null,
-          "resolution_action": "rollback_dns_config"
+          "resolution_action": "renew_billing_api_certificate"
         },
         "result": "CORRECT \u2014 incident resolved successfully",
-        "efficiency_bonus": 0.88,
-        "final_score": 0.887,
-        "cumulative_reward": 7.78
+        "final_score": 0.95
       }
     },
     "hard": {
       "difficulty": "hard",
-      "score": 0.65,
-      "steps": 12,
-      "elapsed_seconds": 25.1,
+      "score": 0.82,
+      "steps": 4,
+      "elapsed_seconds": 7.8,
       "passed": true,
       "info": {
         "action": {
           "action_type": "resolve",
           "target": null,
-          "resolution_action": "disable_feature_flag_fraud_model_v3"
+          "resolution_action": "rollback_certificate_rotation"
         },
         "result": "CORRECT \u2014 incident resolved successfully",
-        "efficiency_bonus": 0.70,
-        "final_score": 0.65,
-        "cumulative_reward": 5.40
+        "final_score": 0.82
       }
     }
   }

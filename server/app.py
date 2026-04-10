@@ -604,8 +604,8 @@ async def step(action: Action):
     if done:
         from server.graders import grade_episode
         final_score = grade_episode(_state, _current_scenario)
-        # Ensure final total is safely bounded in (0.01, 0.98)
-        target_total = max(0.01, min(0.98, float(final_score)))
+        # Ensure final total is safely bounded in (0.01, 0.99)
+        target_total = max(0.01, min(0.99, float(final_score)))
         
         # Calculate terminal reward to make sum exactly target_total
         step_reward = round(target_total - _state["cumulative_reward"], 4)

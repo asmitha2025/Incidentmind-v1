@@ -14,6 +14,10 @@ import sys
 import time
 
 import requests
+from dotenv import load_dotenv
+
+# Load .env variables for Check #7 to pass locally
+load_dotenv()
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--url", default="http://localhost:7860", help="Environment base URL")
