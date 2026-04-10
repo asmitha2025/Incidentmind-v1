@@ -134,18 +134,18 @@ def _fallback_logic(observation: dict) -> dict:
 
 
 def log_start(task: str, env: str, model: str):
-    print(f"[START] {json.dumps({'task': task, 'env': env, 'model': model})}", flush=True)
+    print(f"[START] task={task} env={env} model={model}", flush=True)
 
 def log_step(step: int, action: str, reward: float, done: bool, error: str = None):
-    # Clamp reward strictly to (0, 1) for validator compliance
+    # Clamp reward strictly to (0.01, 0.99) for validator compliance
     clamped = max(0.01, min(0.99, reward))
-    print(f"[STEP] {json.dumps({'step': step, 'action': action, 'reward': clamped, 'done': done, 'error': error})}", flush=True)
+    print(f"[STEP] step={step} action={action} reward={clamped:.2f} done={str(done).lower()} error={error or 'null'}", flush=True)
 
 def log_end(success: bool, steps: int, score: float, rewards: list):
-    # Clamp score and all rewards strictly to (0, 1) — validator rejects exactly 0.0 or 1.0
+    # Clamp score and all rewards strictly to (0.01, 0.99) — validator rejects exactly 0.0 or 1.0
     clamped_score = max(0.01, min(0.99, score))
-    clamped_rewards = [max(0.01, min(0.99, r)) for r in rewards]
-    print(f"[END] {json.dumps({'success': success, 'steps': steps, 'score': clamped_score, 'rewards': clamped_rewards})}", flush=True)
+    clamped_rewards_str = ",".join(f"{max(0.01, min(0.99, r)):.2f}" for r in rewards)
+    print(f"[END] success={str(success).lower()} steps={steps} score={clamped_score:.3f} rewards={clamped_rewards_str}", flush=True)
 
 
 def run_episode(difficulty: str) -> dict:

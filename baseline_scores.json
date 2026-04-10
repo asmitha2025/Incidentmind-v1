@@ -1,18 +1,16 @@
 {
   "model": "meta-llama/Llama-3.3-70B-Instruct",
   "scores": {
-    "easy": 0.92,
-    "medium": 0.95,
-    "hard": 0.82
+    "easy": 0.92
   },
   "all_passed": true,
-  "total_elapsed_seconds": 23.7,
+  "total_elapsed_seconds": 3.6,
   "results": {
     "easy": {
       "difficulty": "easy",
       "score": 0.92,
       "steps": 4,
-      "elapsed_seconds": 8.2,
+      "elapsed_seconds": 3.6,
       "passed": true,
       "info": {
         "action": {
@@ -22,38 +20,6 @@
         },
         "result": "CORRECT \u2014 incident resolved successfully",
         "final_score": 0.92
-      }
-    },
-    "medium": {
-      "difficulty": "medium",
-      "score": 0.95,
-      "steps": 4,
-      "elapsed_seconds": 7.7,
-      "passed": true,
-      "info": {
-        "action": {
-          "action_type": "resolve",
-          "target": null,
-          "resolution_action": "renew_billing_api_certificate"
-        },
-        "result": "CORRECT \u2014 incident resolved successfully",
-        "final_score": 0.95
-      }
-    },
-    "hard": {
-      "difficulty": "hard",
-      "score": 0.82,
-      "steps": 4,
-      "elapsed_seconds": 7.8,
-      "passed": true,
-      "info": {
-        "action": {
-          "action_type": "resolve",
-          "target": null,
-          "resolution_action": "rollback_certificate_rotation"
-        },
-        "result": "CORRECT \u2014 incident resolved successfully",
-        "final_score": 0.82
       }
     }
   }
