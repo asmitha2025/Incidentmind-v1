@@ -114,13 +114,13 @@ def log_start(task: str, env: str, model: str):
 
 def log_step(step: int, action: str, reward: float, done: bool, error: str = None):
     # Clamp reward strictly to (0, 1) for validator compliance
-    clamped = max(0.01, min(0.99, reward))
+    clamped = max(0.001, min(0.98, reward))
     print(f"[STEP] {json.dumps({'step': step, 'action': action, 'reward': clamped, 'done': done, 'error': error})}", flush=True)
 
 def log_end(success: bool, steps: int, score: float, rewards: list):
     # Clamp score and all rewards strictly to (0, 1) — validator rejects exactly 0.0 or 1.0
-    clamped_score = max(0.01, min(0.99, score))
-    clamped_rewards = [max(0.01, min(0.99, r)) for r in rewards]
+    clamped_score = max(0.001, min(0.98, score))
+    clamped_rewards = [max(0.001, min(0.98, r)) for r in rewards]
     print(f"[END] {json.dumps({'success': success, 'steps': steps, 'score': clamped_score, 'rewards': clamped_rewards})}", flush=True)
 
 
@@ -144,7 +144,7 @@ def run_episode(difficulty: str) -> dict:
 
     step = 0
     done = False
-    final_score = 0.01  # safe default — never exactly 0.0
+    final_score = 0.001  # safe default — never exactly 0.0
     final_info = {}
     rewards = []
 
@@ -181,7 +181,7 @@ def run_episode(difficulty: str) -> dict:
     elapsed_total = time.time() - episode_start
     
     # Clamp final_score strictly to (0, 1) before logging
-    final_score = max(0.01, min(0.99, final_score))
+    final_score = max(0.001, min(0.98, final_score))
     success = final_score >= _get_threshold(difficulty)
     log_end(success=success, steps=step, score=final_score, rewards=rewards)
     

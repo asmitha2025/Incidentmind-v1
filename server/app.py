@@ -164,7 +164,7 @@ def _initial_state(scenario: Dict) -> Dict:
         "blast_radius": 0,
         "resolved": False,
         "resolution_action": None,
-        "cumulative_reward": 0.01,
+        "cumulative_reward": 0.0,
         "done": False,
     }
 
@@ -599,19 +599,25 @@ async def step(action: Action):
     # 2. Setting the final step reward to the grader's deterministic score
     
     _state["done"] = done
-    step_reward = 0.01  # Safe epsilon — never 0.0, safe at any rounding precision
+    step_reward = 0.001  # Tiny epsilon for compliance
 
     if done:
         from server.graders import grade_episode
         final_score = grade_episode(_state, _current_scenario)
-        # Hard clamp — belt-and-suspenders
-        final_score = max(0.01, min(0.99, float(final_score)))
-        info["final_score"] = final_score
-        _state["cumulative_reward"] = final_score
-        step_reward = final_score
+        # Ensure final total is safely bounded in (0.01, 0.98)
+        target_total = max(0.01, min(0.98, float(final_score)))
+        
+        # Calculate terminal reward to make sum exactly target_total
+        step_reward = round(target_total - _state["cumulative_reward"], 4)
+        
+        # Hard floor: reward must be strictly > 0.0
+        if step_reward < 0.001:
+            step_reward = 0.001
+            
+        _state["cumulative_reward"] += step_reward
+        info["final_score"] = round(_state["cumulative_reward"], 4)
     else:
-        _state["cumulative_reward"] = 0.01
-        step_reward = 0.01
+        _state["cumulative_reward"] += step_reward
 
     # Record action in state
     _state["actions_taken"].append({
